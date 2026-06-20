@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title data-i18n="analysis.title">Oil Analysis — ACC LMS</title>
+  <link rel="icon" href="../assets/favicon.ico" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Cairo:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/tokens.css" />
+  <link rel="stylesheet" href="../css/base.css" />
+  <link rel="stylesheet" href="../css/sidebar.css" />
+  <link rel="stylesheet" href="../css/components.css" />
+  <link rel="manifest" href="../manifest.json">
+  <link rel="stylesheet" href="../css/print.css" media="print">
+  <meta name="theme-color" content="#1E2B5E">
+  <style>
+    .rec-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: var(--radius-full); font-size: var(--text-xs); font-weight: 600; }
+    .rec-badge--continue      { background: var(--color-approved-bg); color: var(--color-approved); }
+    .rec-badge--change_oil    { background: var(--color-high-bg); color: var(--color-high); }
+    .rec-badge--urgent_change { background: var(--color-critical-bg); color: var(--color-critical); }
+    .rec-badge--retest        { background: var(--color-info-bg); color: var(--color-info); }
+    .rec-badge--investigate   { background: var(--color-recalled-bg); color: var(--color-recalled); }
+    .analysis-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: var(--space-3); margin-bottom: var(--space-4); }
+    .analysis-kpi { background: var(--color-surface); border-radius: var(--radius-lg); border: 1px solid var(--color-border); padding: var(--space-4); text-align: center; }
+    .analysis-kpi-value { font-size: var(--text-2xl); font-weight: 700; color: var(--color-brand-navy); line-height: 1; }
+    .analysis-kpi-label { font-size: var(--text-xs); color: var(--color-text-muted); margin-top: 4px; }
+  </style>
+</head>
+<body>
+  <div class="app-layout" id="appLayout">
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="main-wrapper">
+      <header class="app-header" id="appHeader"></header>
+      <main class="main-content">
+
+        <div class="page-header">
+          <div class="page-header-left">
+            <h1 class="page-title" data-i18n="analysis.pageTitle">Oil Analysis</h1>
+            <p class="page-subtitle" data-i18n="analysis.pageSubtitle">Sample submissions, lab results, and recommendations</p>
+          </div>
+          <div class="page-header-actions">
+            <button class="btn btn-primary" id="btnSubmitAnalysis" data-permission="analysis.create">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <span data-i18n="analysis.submitSample">Submit Sample</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- KPI Summary -->
+        <div class="analysis-kpis" id="analysisKpis">
+          <div class="analysis-kpi"><div class="analysis-kpi-value" id="kpiTotal">—</div><div class="analysis-kpi-label" data-i18n="analysis.kpi.total">Total Samples</div></div>
+          <div class="analysis-kpi"><div class="analysis-kpi-value" id="kpiPending" style="color:var(--color-pending)">—</div><div class="analysis-kpi-label" data-i18n="analysis.kpi.pending">Pending Review</div></div>
+          <div class="analysis-kpi"><div class="analysis-kpi-value" id="kpiUrgent" style="color:var(--color-critical)">—</div><div class="analysis-kpi-label" data-i18n="analysis.kpi.urgent">Urgent Changes</div></div>
+          <div class="analysis-kpi"><div class="analysis-kpi-value" id="kpiDueSoon" style="color:var(--color-high)">—</div><div class="analysis-kpi-label" data-i18n="analysis.kpi.dueSoon">Due This Month</div></div>
+          <div class="analysis-kpi"><div class="analysis-kpi-value" id="kpiOilRequired" style="color:var(--color-brand-green)">—</div><div class="analysis-kpi-label" data-i18n="analysis.kpi.oilRequired">Oil Change Flags</div></div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="filter-bar card">
+          <div class="filter-row">
+            <div class="filter-field filter-field--grow">
+              <label class="filter-label" data-i18n="common.search">Search</label>
+              <div class="input-icon-wrap">
+                <svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" id="searchInput" class="form-input input-with-icon" placeholder="Search by point, location, technician…" />
+              </div>
+            </div>
+            <div class="filter-field">
+              <label class="filter-label" data-i18n="common.status">Status</label>
+              <select id="statusFilter" class="form-select">
+                <option value="">All Statuses</option>
+                <option value="PENDING">Pending</option>
+                <option value="APPROVED">Approved</option>
+                <option value="REJECTED">Rejected</option>
+              </select>
+            </div>
+            <div class="filter-field">
+              <label class="filter-label" data-i18n="analysis.recommendation">Recommendation</label>
+              <select id="recFilter" class="form-select">
+                <option value="">All</option>
+                <option value="CONTINUE">Continue</option>
+                <option value="CHANGE_OIL">Change Oil</option>
+                <option value="URGENT_CHANGE">Urgent Change</option>
+                <option value="RETEST">Retest</option>
+                <option value="INVESTIGATE">Investigate</option>
+              </select>
+            </div>
+            <div class="filter-field">
+              <label class="filter-label" data-i18n="common.dateFrom">From</label>
+              <input type="date" id="dateFrom" class="form-input" />
+            </div>
+            <div class="filter-field">
+              <label class="filter-label" data-i18n="common.dateTo">To</label>
+              <input type="date" id="dateTo" class="form-input" />
+            </div>
+            <button class="btn btn-ghost btn-sm" id="btnReset" data-i18n="common.reset">Reset</button>
+          </div>
+          <div class="chip-row">
+            <button class="chip chip--active" data-filter="all">All</button>
+            <button class="chip" data-filter="mine">My Samples</button>
+            <button class="chip" data-filter="pending">Pending Review</button>
+            <button class="chip" data-filter="urgent">Urgent / Investigate</button>
+            <button class="chip" data-filter="oil_required">Oil Change Required</button>
+            <button class="chip" data-filter="due_soon">Due This Month</button>
+          </div>
+        </div>
+
+        <!-- Results Summary -->
+        <div class="results-summary">
+          <span id="resultCount" class="result-count">—</span>
+          <div class="sort-wrap">
+            <label class="filter-label">Sort</label>
+            <select id="sortSelect" class="form-select form-select--sm">
+              <option value="date_desc">Date (Newest)</option>
+              <option value="date_asc">Date (Oldest)</option>
+              <option value="due_soon">Next Sample Due</option>
+              <option value="rec">Recommendation Priority</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Analysis Table -->
+        <div class="card card--flush">
+          <div class="table-wrap">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th data-i18n="analysis.col.id">Sample ID</th>
+                  <th data-i18n="analysis.col.point">Point</th>
+                  <th data-i18n="analysis.col.location">Location</th>
+                  <th data-i18n="analysis.col.sampleDate">Sample Date</th>
+                  <th data-i18n="analysis.col.technician">Technician</th>
+                  <th data-i18n="analysis.col.recommendation">Recommendation</th>
+                  <th data-i18n="analysis.col.nextDue">Next Sample Due</th>
+                  <th data-i18n="analysis.col.status">Status</th>
+                  <th data-i18n="analysis.col.actions">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="analysisTbody">
+                <tr class="table-loading-row">
+                  <td colspan="9"><div class="table-loading"><div class="spinner"></div><span>Loading…</span></div></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="table-footer">
+            <span id="pageInfo"></span>
+            <div class="pagination" id="pagination"></div>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- ═══════ MODAL: Submit Analysis Sample ═══════ -->
+  <div class="modal-backdrop" id="submitModal" role="dialog" aria-modal="true" aria-labelledby="submitModalTitle" hidden>
+    <div class="modal modal--lg">
+      <div class="modal-header">
+        <h2 class="modal-title" id="submitModalTitle" data-i18n="analysis.submitModal.title">Submit Oil Analysis Sample</h2>
+        <button class="modal-close" id="closeSubmitModal" aria-label="Close">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form id="submitForm" novalidate>
+          <div class="form-grid form-grid--2">
+            <!-- Point selector -->
+            <div class="form-group form-group--span2">
+              <label class="form-label form-label--required">Lubrication Point</label>
+              <div class="input-icon-wrap">
+                <svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" id="pointSearch" class="form-input input-with-icon" placeholder="Search by Point ID or description…" autocomplete="off" />
+              </div>
+              <div class="dropdown-results" id="pointDropdown" hidden></div>
+              <input type="hidden" id="selectedPointId" required />
+            </div>
+
+            <!-- Sample Date -->
+            <div class="form-group">
+              <label class="form-label form-label--required" for="sampleDate">Sample Date</label>
+              <input type="date" id="sampleDate" name="sampleDate" class="form-input" required />
+            </div>
+
+            <!-- Lab Reference -->
+            <div class="form-group">
+              <label class="form-label" for="labReference">Lab Reference No.</label>
+              <input type="text" id="labReference" name="labReference" class="form-input" placeholder="Optional lab tracking number" />
+            </div>
+
+            <!-- Viscosity -->
+            <div class="form-group">
+              <label class="form-label" for="viscosity">Viscosity (cSt)</label>
+              <input type="number" id="viscosity" name="viscosity" class="form-input" step="0.01" min="0" placeholder="0.00" />
+            </div>
+
+            <!-- Contamination -->
+            <div class="form-group">
+              <label class="form-label" for="contamination">Contamination Level (%)</label>
+              <input type="number" id="contamination" name="contamination" class="form-input" step="0.1" min="0" max="100" placeholder="0.0" />
+            </div>
+
+            <!-- Water Content -->
+            <div class="form-group">
+              <label class="form-label" for="waterContent">Water Content (ppm)</label>
+              <input type="number" id="waterContent" name="waterContent" class="form-input" step="1" min="0" placeholder="0" />
+            </div>
+
+            <!-- Particle Count -->
+            <div class="form-group">
+              <label class="form-label" for="particleCount">ISO Particle Count</label>
+              <input type="text" id="particleCount" name="particleCount" class="form-input" placeholder="e.g. 18/16/13" />
+            </div>
+
+            <!-- Recommendation -->
+            <div class="form-group form-group--span2">
+              <label class="form-label form-label--required" for="recommendation">Recommendation</label>
+              <select id="recommendation" name="recommendation" class="form-select" required>
+                <option value="">Select recommendation…</option>
+                <option value="CONTINUE">✅ Continue — Oil is in good condition</option>
+                <option value="CHANGE_OIL">🟡 Change Oil — Oil degraded, schedule change</option>
+                <option value="URGENT_CHANGE">🔴 Urgent Change — Immediate oil change required</option>
+                <option value="RETEST">🔵 Retest — Results inconclusive, resample in 30 days</option>
+                <option value="INVESTIGATE">🟣 Investigate — Anomaly detected, escalate</option>
+              </select>
+            </div>
+
+            <!-- Next Sample Date (SUPERVISOR/ADMIN) -->
+            <div class="form-group" id="nextSampleGroup" data-permission-field="analysis.set_next_date">
+              <label class="form-label" for="nextSampleDate">Next Sample Date</label>
+              <input type="date" id="nextSampleDate" name="nextSampleDate" class="form-input" />
+            </div>
+
+            <!-- Notes -->
+            <div class="form-group form-group--span2">
+              <label class="form-label" for="analysisNotes">Lab Notes / Observations</label>
+              <textarea id="analysisNotes" name="notes" class="form-textarea" rows="3"
+                        placeholder="Any lab observations, anomalies, or follow-up notes…"></textarea>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="cancelSubmit">Cancel</button>
+        <button class="btn btn-primary" id="confirmSubmit">Submit Analysis</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ MODAL: Analysis Detail ═══════ -->
+  <div class="modal-backdrop" id="detailModal" role="dialog" aria-modal="true" aria-labelledby="detailModalTitle" hidden>
+    <div class="modal modal--lg">
+      <div class="modal-header">
+        <h2 class="modal-title" id="detailModalTitle">Analysis Detail</h2>
+        <button class="modal-close" id="closeDetailModal" aria-label="Close">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body" id="detailBody"></div>
+      <div class="modal-footer" id="detailFooter">
+        <button class="btn btn-ghost" onclick="Modal.close('detailModal')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+  <div class="search-overlay" id="searchOverlay" hidden></div>
+
+  <script src="../js/core.js"></script>
+  <script src="../js/shell.js"></script>
+  <script>
+  (function() {
+    'use strict';
+
+    let state = {
+      records: [], filtered: [], page: 1, pageSize: 25, sort: 'date_desc',
+      filters: { search: '', status: '', rec: '', dateFrom: '', dateTo: '', chip: 'all' }
+    };
+
+    const REC_ORDER = { URGENT_CHANGE: 0, INVESTIGATE: 1, CHANGE_OIL: 2, RETEST: 3, CONTINUE: 4 };
+
+    App.init({ requireAuth: true }).then(() => {
+      Shell.init();
+      setupFilters();
+      setupModals();
+      loadAnalysis();
+      I18n._rerender();
+    });
+
+    async function loadAnalysis() {
+      const user = Auth.getUser();
+      const params = {};
+      if (user.role === 'TECHNICIAN') params.technicianId = user.UserID;
+      const res = await API.getAnalysis(params);
+      if (res.success) {
+        state.records = res.data || [];
+        updateKPIs();
+        applyFilters();
+      } else {
+        Toast.show(res.error || 'Failed to load', 'error');
+      }
+    }
+
+    function updateKPIs() {
+      const r = state.records;
+      const now = new Date(); const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      document.getElementById('kpiTotal').textContent = r.length;
+      document.getElementById('kpiPending').textContent = r.filter(x => x.Status === 'PENDING').length;
+      document.getElementById('kpiUrgent').textContent = r.filter(x => ['URGENT_CHANGE','INVESTIGATE'].includes(x.Recommendation)).length;
+      document.getElementById('kpiDueSoon').textContent = r.filter(x => x.NextSampleDate && new Date(x.NextSampleDate) <= monthEnd).length;
+      document.getElementById('kpiOilRequired').textContent = r.filter(x => x.OilChangeRequired).length;
+    }
+
+    function applyFilters() {
+      const { search, status, rec, dateFrom, dateTo, chip } = state.filters;
+      const user = Auth.getUser();
+      let rows = [...state.records];
+
+      if (chip === 'mine') rows = rows.filter(r => r.TechnicianID === user.UserID);
+      if (chip === 'pending') rows = rows.filter(r => r.Status === 'PENDING');
+      if (chip === 'urgent') rows = rows.filter(r => ['URGENT_CHANGE','INVESTIGATE'].includes(r.Recommendation));
+      if (chip === 'oil_required') rows = rows.filter(r => r.OilChangeRequired);
+      if (chip === 'due_soon') {
+        const monthEnd = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
+        rows = rows.filter(r => r.NextSampleDate && new Date(r.NextSampleDate) <= monthEnd);
+      }
+
+      if (status) rows = rows.filter(r => r.Status === status);
+      if (rec) rows = rows.filter(r => r.Recommendation === rec);
+      if (dateFrom) rows = rows.filter(r => r.SampleDate >= dateFrom);
+      if (dateTo) rows = rows.filter(r => r.SampleDate <= dateTo);
+      if (search) {
+        const q = search.toLowerCase();
+        rows = rows.filter(r =>
+          (r.AnalysisID||'').toLowerCase().includes(q) ||
+          (r.PointID||'').toLowerCase().includes(q) ||
+          (r.LocationName||'').toLowerCase().includes(q) ||
+          (r.TechnicianName||'').toLowerCase().includes(q)
+        );
+      }
+
+      rows.sort((a, b) => {
+        switch(state.sort) {
+          case 'date_desc': return (b.SampleDate||'').localeCompare(a.SampleDate||'');
+          case 'date_asc':  return (a.SampleDate||'').localeCompare(b.SampleDate||'');
+          case 'due_soon':  return (a.NextSampleDate||'9999').localeCompare(b.NextSampleDate||'9999');
+          case 'rec': return (REC_ORDER[a.Recommendation]??9) - (REC_ORDER[b.Recommendation]??9);
+          default: return 0;
+        }
+      });
+
+      state.filtered = rows; state.page = 1;
+      renderTable();
+    }
+
+    function recBadge(rec) {
+      const labels = { CONTINUE:'Continue', CHANGE_OIL:'Change Oil', URGENT_CHANGE:'Urgent Change', RETEST:'Retest', INVESTIGATE:'Investigate' };
+      return `<span class="rec-badge rec-badge--${(rec||'').toLowerCase()}">${labels[rec]||rec||'—'}</span>`;
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('analysisTbody');
+      const total = state.filtered.length;
+      const start = (state.page-1)*state.pageSize;
+      const rows = state.filtered.slice(start, start+state.pageSize);
+      const user = Auth.getUser();
+
+      document.getElementById('resultCount').textContent = `${total} records`;
+      document.getElementById('pageInfo').textContent = total > 0 ? `${start+1}–${Math.min(start+state.pageSize,total)} of ${total}` : '';
+
+      if (!rows.length) {
+        tbody.innerHTML = `<tr><td colspan="9" class="table-empty"><div class="empty-state">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3"><path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2z"/></svg>
+          <p>No analysis records found</p></div></td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = rows.map(r => {
+        const canApprove = Auth.can('analysis.approve') && r.Status === 'PENDING' && r.TechnicianID !== user.UserID;
+        const dueFlag = r.NextSampleDate && new Date(r.NextSampleDate) < new Date() ? ' <span class="badge badge--critical badge--sm">Overdue</span>' : '';
+        return `<tr class="table-row" data-id="${r.AnalysisID}">
+          <td><code class="mono">${r.AnalysisID||'—'}</code></td>
+          <td><div class="cell-primary">${r.PointID||'—'}</div><div class="cell-secondary">${r.EquipmentName||''}</div></td>
+          <td>${r.LocationName||'—'}</td>
+          <td>${I18n.formatDate(r.SampleDate)}</td>
+          <td>${r.TechnicianName||'—'}</td>
+          <td>${recBadge(r.Recommendation)}</td>
+          <td>${r.NextSampleDate ? I18n.formatDate(r.NextSampleDate) + dueFlag : '—'}</td>
+          <td><span class="badge badge--${(r.Status||'').toLowerCase()}">${r.Status||'—'}</span></td>
+          <td><div class="action-btns">
+            <button class="btn btn-ghost btn-xs" onclick="viewAnalysis('${r.AnalysisID}')" title="View">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+            ${canApprove ? `<button class="btn btn-ghost btn-xs btn--success" onclick="quickApprove('${r.AnalysisID}')" title="Approve">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+            </button>` : ''}
+          </div></td>
+        </tr>`;
+      }).join('');
+
+      renderPagination(total);
+    }
+
+    function renderPagination(total) {
+      const pg = document.getElementById('pagination');
+      const pages = Math.ceil(total/state.pageSize);
+      pg.innerHTML = '';
+      if (pages <= 1) return;
+      const mk = (l,p,d,a) => { const b=document.createElement('button'); b.className=`pagination-btn${a?' pagination-btn--active':''}`; b.textContent=l; b.disabled=d; b.onclick=()=>{state.page=p;renderTable();}; return b; };
+      pg.appendChild(mk('‹',state.page-1,state.page===1,false));
+      for(let i=1;i<=pages;i++){
+        if(pages>7&&Math.abs(i-state.page)>2&&i!==1&&i!==pages){if(i===2||i===pages-1){const s=document.createElement('span');s.textContent='…';s.className='pagination-ellipsis';pg.appendChild(s);}continue;}
+        pg.appendChild(mk(i,i,false,i===state.page));
+      }
+      pg.appendChild(mk('›',state.page+1,state.page===pages,false));
+    }
+
+    window.viewAnalysis = async function(id) {
+      const res = await API.get('analysis.get', { analysisId: id });
+      if (!res.success) { Toast.show(res.error,'error'); return; }
+      const r = res.data;
+      const user = Auth.getUser();
+      const canApprove = Auth.can('analysis.approve') && r.Status === 'PENDING' && r.TechnicianID !== user.UserID;
+      const canReject  = Auth.can('analysis.reject')  && r.Status === 'PENDING' && r.TechnicianID !== user.UserID;
+      const canSetDate = Auth.can('analysis.set_next_date') && r.Status === 'APPROVED';
+
+      document.getElementById('detailModalTitle').textContent = r.AnalysisID;
+      document.getElementById('detailBody').innerHTML = `
+        <div class="detail-grid">
+          <div class="detail-section">
+            <h3 class="detail-section-title">Sample Info</h3>
+            <dl class="detail-dl">
+              <dt>Status</dt><dd><span class="badge badge--${(r.Status||'').toLowerCase()}">${r.Status}</span></dd>
+              <dt>Sample Date</dt><dd>${I18n.formatDate(r.SampleDate)}</dd>
+              <dt>Lab Reference</dt><dd>${r.LabReference||'—'}</dd>
+              <dt>Technician</dt><dd>${r.TechnicianName||'—'}</dd>
+              <dt>Recommendation</dt><dd>${recBadge(r.Recommendation)}</dd>
+              <dt>Next Sample Due</dt><dd>${I18n.formatDate(r.NextSampleDate)||'—'}</dd>
+              <dt>Oil Change Required</dt><dd>${r.OilChangeRequired ? '<span class="badge badge--critical">Yes</span>' : '<span class="badge badge--approved">No</span>'}</dd>
+            </dl>
+          </div>
+          <div class="detail-section">
+            <h3 class="detail-section-title">Lab Results</h3>
+            <dl class="detail-dl">
+              <dt>Viscosity (cSt)</dt><dd>${r.Viscosity||'—'}</dd>
+              <dt>Contamination (%)</dt><dd>${r.Contamination||'—'}</dd>
+              <dt>Water Content (ppm)</dt><dd>${r.WaterContent||'—'}</dd>
+              <dt>Particle Count</dt><dd>${r.ParticleCount||'—'}</dd>
+              <dt>Notes</dt><dd>${r.Notes||'—'}</dd>
+            </dl>
+          </div>
+          <div class="detail-section">
+            <h3 class="detail-section-title">Point Info</h3>
+            <dl class="detail-dl">
+              <dt>Point ID</dt><dd><code class="mono">${r.PointID||'—'}</code></dd>
+              <dt>Location</dt><dd>${r.LocationName||'—'}</dd>
+              <dt>Equipment</dt><dd>${r.EquipmentName||'—'}</dd>
+            </dl>
+          </div>
+        </div>`;
+
+      document.getElementById('detailFooter').innerHTML = `
+        <button class="btn btn-ghost" onclick="Modal.close('detailModal')">Close</button>
+        ${canSetDate ? `<button class="btn btn-secondary" onclick="setNextDate('${r.AnalysisID}')">Set Next Date</button>` : ''}
+        ${canReject  ? `<button class="btn btn-danger"    onclick="rejectAnalysis('${r.AnalysisID}')">Reject</button>` : ''}
+        ${canApprove ? `<button class="btn btn-primary"   onclick="approveAnalysis('${r.AnalysisID}')">Approve</button>` : ''}`;
+
+      Modal.open('detailModal');
+    };
+
+    window.quickApprove = async function(id) {
+      if (!confirm('Approve this analysis?')) return;
+      const res = await API.approveAnalysis(id, {});
+      if (res.success) { Toast.show('Analysis approved','success'); loadAnalysis(); }
+      else Toast.show(res.error,'error');
+    };
+
+    window.approveAnalysis = async function(id) {
+      const notes = prompt('Approval notes (optional):', '') ?? '';
+      const res = await API.approveAnalysis(id, { notes });
+      if (res.success) { Toast.show('Analysis approved','success'); Modal.close('detailModal'); loadAnalysis(); }
+      else Toast.show(res.error,'error');
+    };
+
+    window.rejectAnalysis = async function(id) {
+      const reason = prompt('Rejection reason (required):','');
+      if (!reason) return;
+      const res = await API.rejectAnalysis(id, { reason });
+      if (res.success) { Toast.show('Analysis rejected','success'); Modal.close('detailModal'); loadAnalysis(); }
+      else Toast.show(res.error,'error');
+    };
+
+    window.setNextDate = async function(id) {
+      const date = prompt('Enter next sample date (YYYY-MM-DD):','');
+      if (!date) return;
+      const res = await API.setNextSampleDate(id, date);
+      if (res.success) { Toast.show('Next date updated','success'); Modal.close('detailModal'); loadAnalysis(); }
+      else Toast.show(res.error,'error');
+    };
+
+    // ── Submit Form ─────────────────────────────────────────
+    function setupModals() {
+      document.getElementById('btnSubmitAnalysis').addEventListener('click', () => {
+        if (!Auth.can('analysis.create')) { Toast.show('No permission','error'); return; }
+        document.getElementById('sampleDate').value = new Date().toISOString().split('T')[0];
+        // Hide next sample date for technicians
+        if (!Auth.can('analysis.set_next_date')) document.getElementById('nextSampleGroup').style.display = 'none';
+        Modal.open('submitModal');
+      });
+      document.getElementById('closeSubmitModal').addEventListener('click', () => Modal.close('submitModal'));
+      document.getElementById('cancelSubmit').addEventListener('click', () => Modal.close('submitModal'));
+      document.getElementById('closeDetailModal').addEventListener('click', () => Modal.close('detailModal'));
+      document.getElementById('confirmSubmit').addEventListener('click', handleSubmit);
+
+      let pt;
+      document.getElementById('pointSearch').addEventListener('input', e => {
+        clearTimeout(pt);
+        const q = e.target.value.trim();
+        if (q.length < 2) { document.getElementById('pointDropdown').hidden = true; return; }
+        pt = setTimeout(async () => {
+          const res = await API.getPoints({ search: q, isActive: true });
+          const dd = document.getElementById('pointDropdown');
+          if (!res.success || !res.data?.length) { dd.hidden = true; return; }
+          dd.innerHTML = res.data.slice(0,8).map(p =>
+            `<div class="dropdown-item" onclick="selectPoint('${p.PointID}','${(p.Description||'').replace(/'/g,'&#39;')}')">
+              <strong>${p.PointID}</strong> — ${p.Description||''}</div>`
+          ).join('');
+          dd.hidden = false;
+        }, 300);
+      });
+      document.addEventListener('click', e => { if (!e.target.closest('#pointSearch')) document.getElementById('pointDropdown').hidden = true; });
+    }
+
+    window.selectPoint = function(id, desc) {
+      document.getElementById('selectedPointId').value = id;
+      document.getElementById('pointSearch').value = `${id} — ${desc}`;
+      document.getElementById('pointDropdown').hidden = true;
+    };
+
+    async function handleSubmit() {
+      const pointId = document.getElementById('selectedPointId').value;
+      const sampleDate = document.getElementById('sampleDate').value;
+      const recommendation = document.getElementById('recommendation').value;
+      if (!pointId || !sampleDate || !recommendation) {
+        Toast.show('Please fill all required fields','warning'); return;
+      }
+      const payload = {
+        pointId, sampleDate, recommendation,
+        labReference: document.getElementById('labReference').value || null,
+        viscosity: parseFloat(document.getElementById('viscosity').value) || null,
+        contamination: parseFloat(document.getElementById('contamination').value) || null,
+        waterContent: parseFloat(document.getElementById('waterContent').value) || null,
+        particleCount: document.getElementById('particleCount').value || null,
+        nextSampleDate: document.getElementById('nextSampleDate').value || null,
+        notes: document.getElementById('analysisNotes').value.trim() || null,
+      };
+      const btn = document.getElementById('confirmSubmit');
+      btn.disabled = true; btn.textContent = 'Submitting…';
+      const res = await API.submitAnalysis(payload);
+      btn.disabled = false; btn.textContent = 'Submit Analysis';
+      if (res.success) {
+        Toast.show('Analysis sample submitted','success');
+        Modal.close('submitModal');
+        document.getElementById('submitForm').reset();
+        document.getElementById('selectedPointId').value = '';
+        loadAnalysis();
+      } else { Toast.show(res.error || 'Submission failed','error'); }
+    }
+
+    // ── Filter Setup ─────────────────────────────────────────
+    function setupFilters() {
+      const deb = (fn,ms) => { let t; return (...a) => { clearTimeout(t); t=setTimeout(()=>fn(...a),ms); }; };
+      document.getElementById('searchInput').addEventListener('input', deb(e=>{state.filters.search=e.target.value;applyFilters();},350));
+      document.getElementById('statusFilter').addEventListener('change', e=>{state.filters.status=e.target.value;applyFilters();});
+      document.getElementById('recFilter').addEventListener('change', e=>{state.filters.rec=e.target.value;applyFilters();});
+      document.getElementById('dateFrom').addEventListener('change', e=>{state.filters.dateFrom=e.target.value;applyFilters();});
+      document.getElementById('dateTo').addEventListener('change', e=>{state.filters.dateTo=e.target.value;applyFilters();});
+      document.getElementById('sortSelect').addEventListener('change', e=>{state.sort=e.target.value;applyFilters();});
+      document.getElementById('btnReset').addEventListener('click', () => {
+        state.filters={search:'',status:'',rec:'',dateFrom:'',dateTo:'',chip:'all'};
+        document.querySelectorAll('#searchInput,#statusFilter,#recFilter,#dateFrom,#dateTo').forEach(el=>el.value='');
+        document.querySelectorAll('.chip').forEach(c=>c.classList.remove('chip--active'));
+        document.querySelector('.chip[data-filter="all"]').classList.add('chip--active');
+        applyFilters();
+      });
+      document.querySelectorAll('.chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+          document.querySelectorAll('.chip').forEach(c=>c.classList.remove('chip--active'));
+          chip.classList.add('chip--active');
+          state.filters.chip = chip.dataset.filter;
+          applyFilters();
+        });
+      });
+    }
+
+  })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pending Approvals — ACC LMS</title>
+  <link rel="stylesheet" href="../css/tokens.css">
+  <link rel="stylesheet" href="../css/base.css">
+  <link rel="stylesheet" href="../css/sidebar.css">
+  <link rel="stylesheet" href="../css/components.css">
+  <link rel="icon" type="image/png" href="../assets/logo.png">
+</head>
+<body>
+
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main-content" id="main-content">
+    <header class="app-header" id="app-header"></header>
+
+    <main class="page-content">
+
+      <div class="flex items-center justify-between" style="margin-bottom:var(--space-6);">
+        <div>
+          <h2 class="text-2xl font-bold" data-i18n="pending.title">Pending Approvals</h2>
+          <p class="text-sm text-muted" id="pending-count">Loading...</p>
+        </div>
+        <div class="flex gap-3">
+          <button class="btn btn-secondary" onclick="PendingPage.refresh()">↻ Refresh</button>
+        </div>
+      </div>
+
+      <!-- Type filter tabs -->
+      <div class="tab-nav">
+        <button class="tab-btn active" data-type="all" onclick="PendingPage.setType('all', this)">All</button>
+        <button class="tab-btn" data-type="oil_change" onclick="PendingPage.setType('oil_change', this)">🛢 Oil Changes</button>
+        <button class="tab-btn" data-type="oil_analysis" onclick="PendingPage.setType('oil_analysis', this)">🔬 Oil Analysis</button>
+        <button class="tab-btn" data-type="correction" onclick="PendingPage.setType('correction', this)">📝 Corrections</button>
+      </div>
+
+      <!-- Sort and filter bar -->
+      <div class="card" style="margin-bottom:var(--space-4);">
+        <div class="filter-bar">
+          <div class="flex gap-2 flex-wrap">
+            <span class="text-sm text-muted" style="align-self:center;">Sort by:</span>
+            <button class="filter-chip active" data-sort="criticality" onclick="PendingPage.setSort('criticality', this)">Criticality</button>
+            <button class="filter-chip" data-sort="date" onclick="PendingPage.setSort('date', this)">Date</button>
+            <button class="filter-chip" data-sort="overdue" onclick="PendingPage.setSort('overdue', this)">Overdue First</button>
+          </div>
+          <div class="flex gap-2" style="margin-left:auto;">
+            <select class="form-control" id="criticality-filter" style="width:auto;" onchange="PendingPage.load()">
+              <option value="">All Criticality</option>
+              <option value="CRITICAL">Critical</option>
+              <option value="HIGH">High</option>
+              <option value="MEDIUM">Medium</option>
+              <option value="LOW">Low</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pending Cards -->
+      <div id="pending-list">
+        <div class="text-center" style="padding:40px;">
+          <div class="spinner" style="margin:0 auto 12px;"></div>
+          <div class="text-muted">Loading pending records...</div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- Reject Modal -->
+<div class="modal-overlay" id="reject-modal" style="display:none;">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <h3 class="modal-title">Reject Record</h3>
+      <button class="btn-icon" onclick="Modal.close('reject-modal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="alert alert-warning" style="margin-bottom:16px;">
+        This record will be sent back to the technician with your reason.
+      </div>
+      <div class="form-group">
+        <label class="form-label required">Reason for Rejection</label>
+        <textarea class="form-control" id="reject-reason" rows="4"
+          placeholder="Enter a clear reason for rejection..." required></textarea>
+        <div class="form-hint">The technician will see this reason in their notification.</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="Modal.close('reject-modal')">Cancel</button>
+      <button class="btn btn-danger" onclick="PendingPage.confirmReject()">Reject Record</button>
+    </div>
+  </div>
+</div>
+
+<!-- Record Detail Modal -->
+<div class="modal-overlay" id="record-detail-modal" style="display:none;">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div>
+        <h3 class="modal-title" id="rd-title">Record Details</h3>
+        <div class="text-sm text-muted" id="rd-subtitle"></div>
+      </div>
+      <button class="btn-icon" onclick="Modal.close('record-detail-modal')">✕</button>
+    </div>
+    <div class="modal-body" id="rd-body">Loading...</div>
+    <div class="modal-footer" id="rd-footer"></div>
+  </div>
+</div>
+
+<div id="toast-container" class="toast-container"></div>
+
+<script src="../js/core.js"></script>
+<script src="../js/shell.js"></script>
+<script>
+const PendingPage = {
+  _type: 'all',
+  _sort: 'criticality',
+  _items: [],
+  _rejectTargetId: null,
+  _rejectTargetType: null,
+
+  async init() {
+    await App.init();
+    await Shell.init();
+
+    // Only supervisors and admins
+    if (!Auth.hasRole('ADMIN', 'SUPERVISOR')) {
+      window.location.href = 'dashboard.html';
+      return;
+    }
+
+    await this.load();
+  },
+
+  async refresh() {
+    await this.load();
+    Toast.info('Refreshed');
+  },
+
+  setType(type, el) {
+    this._type = type;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    this.render();
+  },
+
+  setSort(sort, el) {
+    this._sort = sort;
+    document.querySelectorAll('[data-sort]').forEach(b => b.classList.remove('active'));
+    el.classList.add('active');
+    this.render();
+  },
+
+  async load() {
+    document.getElementById('pending-list').innerHTML = `
+      <div class="text-center" style="padding:40px;">
+        <div class="spinner" style="margin:0 auto 12px;"></div>
+        <div class="text-muted">Loading...</div>
+      </div>`;
+
+    const res = await API.getPendingQueue();
+
+    if (!res.success) {
+      // FIX: previously this always showed the hardcoded
+      // 'API URL not configured' message regardless of the actual
+      // failure reason (could be a permission error, expired session,
+      // or genuine connectivity issue) — now shows the real error.
+      const msg = res.error || I18n.t('error.api_not_configured');
+      const msgEl = document.createElement('div');
+      msgEl.textContent = msg;
+      document.getElementById('pending-list').innerHTML =
+        `<div class="alert alert-warning">${msgEl.innerHTML}</div>`;
+      return;
+    }
+
+    this._items = res.data || [];
+    this.render();
+  },
+
+  _filtered() {
+    let items = [...this._items];
+
+    // Type filter
+    if (this._type !== 'all') {
+      const typeMap = {
+        oil_change: 'OIL_CHANGE',
+        oil_analysis: 'OIL_ANALYSIS',
+        correction: 'CORRECTION',
+      };
+      items = items.filter(i => i.Type === typeMap[this._type]);
+    }
+
+    // Criticality filter
+    const crit = document.getElementById('criticality-filter')?.value;
+    if (crit) items = items.filter(i => i.Criticality === crit);
+
+    // Sort
+    if (this._sort === 'criticality') {
+      const order = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 };
+      items.sort((a, b) => (order[a.Criticality] ?? 4) - (order[b.Criticality] ?? 4));
+    } else if (this._sort === 'date') {
+      items.sort((a, b) => new Date(a.ChangeDate) - new Date(b.ChangeDate));
+    } else if (this._sort === 'overdue') {
+      items.sort((a, b) => (b.DaysOverdue || 0) - (a.DaysOverdue || 0));
+    }
+
+    return items;
+  },
+
+  render() {
+    const items = this._filtered();
+    const list = document.getElementById('pending-list');
+    const count = document.getElementById('pending-count');
+
+    count.textContent = `${items.length} record${items.length !== 1 ? 's' : ''} pending approval`;
+
+    // Update nav badge
+    const navBadge = document.getElementById('nav-badge-pending');
+    if (navBadge) {
+      navBadge.textContent = items.length;
+      navBadge.style.display = items.length > 0 ? 'inline-flex' : 'none';
+    }
+
+    if (!items.length) {
+      list.innerHTML = `
+        <div class="card">
+          ${DOM.emptyState(I18n.t('pending.empty'), '✅')}
+        </div>`;
+      return;
+    }
+
+    list.innerHTML = items.map(item => this._renderCard(item)).join('');
+  },
+
+  _renderCard(item) {
+    const typeIcons = {
+      OIL_CHANGE: '🛢️',
+      OIL_ANALYSIS: '🔬',
+      CORRECTION: '📝',
+    };
+    const typeLabels = {
+      OIL_CHANGE: 'Oil Change',
+      OIL_ANALYSIS: 'Oil Analysis',
+      CORRECTION: 'Correction',
+    };
+
+    const icon = typeIcons[item.Type] || '📋';
+    const label = typeLabels[item.Type] || item.Type;
+    const isOwnSubmission = String(item.TechnicianID) === String(Auth.getUser()?.UserID);
+    const canApprove = Auth.can('history.approve') && !isOwnSubmission;
+    const canReject  = Auth.can('history.reject')  && !isOwnSubmission;
+    const role = Auth.getRole();
+
+    const overdueHtml = item.DaysOverdue > 0
+      ? `<span class="badge badge-critical">⏰ ${item.DaysOverdue}d overdue</span>`
+      : '';
+
+    const selfBadge = isOwnSubmission
+      ? `<span class="badge badge-info" title="You cannot approve your own submission">Own Submission</span>`
+      : '';
+
+    return `
+      <div class="card" style="margin-bottom:var(--space-4);">
+        <div class="card-body" style="padding:var(--space-5) var(--space-6);">
+          <div class="flex items-start gap-4">
+
+            <!-- Icon -->
+            <div style="width:44px;height:44px;border-radius:var(--radius-md);background:var(--color-surface-overlay);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;">
+              ${icon}
+            </div>
+
+            <!-- Main info -->
+            <div style="flex:1;min-width:0;">
+              <div class="flex items-center gap-2 flex-wrap" style="margin-bottom:var(--space-2);">
+                <span class="font-semibold text-sm">${item.PointID || '—'}</span>
+                <span class="badge badge-pending">${label}</span>
+                ${Format.criticalityBadge(item.Criticality)}
+                ${overdueHtml}
+                ${selfBadge}
+              </div>
+
+              <div class="text-sm" style="color:var(--color-text-secondary);margin-bottom:var(--space-3);">
+                <strong>${item.AssetName || '—'}</strong>
+                <span class="text-muted"> · ${item.LocationCode || ''} · ${item.AreaNameEN || ''}</span>
+              </div>
+
+              <div class="flex gap-6 flex-wrap" style="font-size:var(--text-xs);color:var(--color-text-muted);">
+                <div><span class="font-medium text-secondary">Submitted by:</span> ${item.TechnicianName || '—'}</div>
+                <div><span class="font-medium text-secondary">Change Date:</span> ${I18n.formatDate(item.ChangeDate)}</div>
+                <div><span class="font-medium text-secondary">Submitted:</span> ${I18n.timeAgo(item.CreatedAt)}</div>
+                ${item.OilQuantityUsed ? `<div><span class="font-medium text-secondary">Oil Used:</span> ${item.OilQuantityUsed}L</div>` : ''}
+                ${item.Type === 'OIL_ANALYSIS' && item.Recommendation ? `<div><span class="font-medium text-secondary">Recommendation:</span> ${item.Recommendation}</div>` : ''}
+              </div>
+
+              ${item.Notes ? `<div class="alert alert-info" style="margin-top:var(--space-3);padding:var(--space-2) var(--space-3);font-size:var(--text-xs);">📝 ${item.Notes}</div>` : ''}
+            </div>
+
+            <!-- Actions -->
+            <div class="flex gap-2 flex-col items-end" style="flex-shrink:0;">
+              <button class="btn btn-ghost btn-sm" onclick="PendingPage.viewRecord('${item.RecordID}', '${item.Type}')">View Details</button>
+              ${canApprove ? `<button class="btn btn-success btn-sm" onclick="PendingPage.approve('${item.RecordID}', '${item.Type}')">✓ Approve</button>` : ''}
+              ${canReject  ? `<button class="btn btn-danger btn-sm"  onclick="PendingPage.reject('${item.RecordID}', '${item.Type}')">✕ Reject</button>`  : ''}
+              ${role === 'ADMIN' && item.Type !== 'CORRECTION' ? `<button class="btn btn-secondary btn-sm" onclick="PendingPage.forceApprove('${item.RecordID}', '${item.Type}')" title="Force approve (Admin only)">⚡ Force</button>` : ''}
+            </div>
+
+          </div>
+        </div>
+      </div>
+    `;
+  },
+
+  async approve(recordId, type) {
+    const res = await API.approveRecord(recordId);
+    if (res.success) {
+      Toast.success(I18n.t('msg.approved'));
+      this._removeItem(recordId);
+      this.render();
+    } else {
+      Toast.error(res.error || I18n.t('error.generic'));
+    }
+  },
+
+  reject(recordId, type) {
+    this._rejectTargetId = recordId;
+    this._rejectTargetType = type;
+    document.getElementById('reject-reason').value = '';
+    Modal.show('reject-modal');
+  },
+
+  async confirmReject() {
+    const reason = document.getElementById('reject-reason').value.trim();
+    if (!reason) {
+      Toast.warning('Please provide a reason for rejection');
+      return;
+    }
+
+    const res = await API.rejectRecord(this._rejectTargetId, reason);
+    if (res.success) {
+      Toast.success(I18n.t('msg.rejected'));
+      Modal.close('reject-modal');
+      this._removeItem(this._rejectTargetId);
+      this.render();
+    } else {
+      Toast.error(res.error || I18n.t('error.generic'));
+    }
+  },
+
+  async forceApprove(recordId, type) {
+    if (!confirm('Force approve this record? This bypasses the normal workflow.')) return;
+    const res = await API.post('workflow.force_approve', { historyId: recordId, notes: 'Force approved by admin' });
+    if (res.success) {
+      Toast.success('Force approved');
+      this._removeItem(recordId);
+      this.render();
+    } else {
+      Toast.error(res.error || I18n.t('error.generic'));
+    }
+  },
+
+  _removeItem(id) {
+    this._items = this._items.filter(i => i.RecordID !== id);
+  },
+
+  async viewRecord(recordId, type) {
+    Modal.show('record-detail-modal');
+    document.getElementById('rd-title').textContent = recordId;
+    document.getElementById('rd-body').innerHTML =
+      `<div class="text-center" style="padding:32px;"><div class="spinner" style="margin:0 auto;"></div></div>`;
+
+    const endpoint = type === 'OIL_ANALYSIS' ? 'analysis.get' : 'history.get';
+    const res = await API.get(endpoint, { id: recordId });
+
+    if (!res.success) {
+      document.getElementById('rd-body').innerHTML = `<div class="alert alert-danger">Failed to load record</div>`;
+      return;
+    }
+
+    const r = res.data;
+    document.getElementById('rd-subtitle').textContent = `${r.PointID} · ${r.AssetName || ''}`;
+
+    const fields = type === 'OIL_ANALYSIS'
+      ? [
+          ['Sample Date', I18n.formatDate(r.SampleDate)],
+          ['Sample Reference', r.SampleReference],
+          ['Lab Name', r.LabName],
+          ['Recommendation', r.Recommendation],
+          ['Viscosity', r.ViscosityGrade],
+          ['Particle Count', r.ParticleCount],
+          ['Water Content %', r.WaterContent],
+          ['Next Sample Due', I18n.formatDate(r.NextSampleDue)],
+          ['Notes', r.Notes],
+        ]
+      : [
+          ['Change Date', I18n.formatDate(r.ChangeDate)],
+          ['Technician', r.TechnicianName],
+          ['Oil Used (L)', r.OilQuantityUsed],
+          ['Lubricant', r.LubricantName],
+          ['Running Hours', r.RunningHours],
+          ['Notes', r.Notes],
+        ];
+
+    document.getElementById('rd-body').innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4);">
+        ${fields.filter(([,v]) => v).map(([k, v]) => `
+          <div>
+            <div class="text-xs text-muted font-semibold" style="text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;">${k}</div>
+            <div class="text-sm font-medium">${v || '—'}</div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+
+    const item = this._items.find(i => i.RecordID === recordId);
+    const isOwn = String(item?.TechnicianID) === String(Auth.getUser()?.UserID);
+
+    document.getElementById('rd-footer').innerHTML = `
+      ${Auth.can('history.approve') && !isOwn ? `<button class="btn btn-success" onclick="PendingPage.approve('${recordId}','${type}');Modal.close('record-detail-modal')">✓ Approve</button>` : ''}
+      ${Auth.can('history.reject')  && !isOwn ? `<button class="btn btn-danger"  onclick="PendingPage.reject('${recordId}','${type}');Modal.close('record-detail-modal')">✕ Reject</button>`  : ''}
+      <button class="btn btn-ghost" onclick="Modal.close('record-detail-modal')">Close</button>
+    `;
+  },
+};
+
+PendingPage.init();
+</script>
+</body>
+</html>

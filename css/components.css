@@ -1,0 +1,620 @@
+/* ============================================================
+   ACC LMS — Shared Components
+   ============================================================
+   FIX: analysis.html, history.html, notifications.html,
+   reports.html, settings.html and users.html were all built using
+   a class-naming convention (page-header, filter-field, chip,
+   btn--success, badge--approved, modal--lg, form-input, etc.)
+   that base.css / sidebar.css never defined — only the older
+   single-dash convention used by dashboard.html / points.html /
+   pending.html (page-content, filter-bar, btn-success,
+   badge-approved, modal-lg, form-control) was ever styled. Because
+   none of these classes had any matching CSS rule, every element
+   using them rendered with zero layout (default browser block/
+   inline flow, no spacing, no borders) — this is the direct cause
+   of the "messy alignment" reported on the History page filter
+   card, labels/fields, date filters, status chips, and table
+   headers, and the same gap existed across five other pages.
+   This file adds real styling for every one of those classes,
+   reusing the exact same design tokens (--color-*, --space-*,
+   --radius-*, --text-*) as the rest of the app so nothing is
+   visually "redesigned" — it now simply renders as intended.
+   ============================================================ */
+
+/* ── Page Header ────────────────────────────────────────────── */
+
+.page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-5);
+}
+
+.page-header-left { min-width: 0; }
+
+.page-title {
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  color: var(--color-text-primary);
+  line-height: 1.3;
+}
+
+.page-subtitle {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+.page-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.page-info {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+}
+
+/* ── Filter Card / Fields ───────────────────────────────────── */
+
+.filter-bar.card {
+  padding: var(--space-4) var(--space-5);
+  margin-bottom: var(--space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.filter-row {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.filter-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 140px;
+}
+
+.filter-field--grow {
+  flex: 1 1 220px;
+  min-width: 200px;
+}
+
+.filter-label {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.input-icon-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-icon {
+  position: absolute;
+  left: 12px;
+  color: var(--color-text-muted);
+  pointer-events: none;
+}
+
+[dir="rtl"] .input-icon {
+  left: auto;
+  right: 12px;
+}
+
+.input-with-icon {
+  padding-left: 36px !important;
+}
+
+[dir="rtl"] .input-with-icon {
+  padding-left: var(--space-3) !important;
+  padding-right: 36px !important;
+}
+
+/* Quick filter chips */
+.chip-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  border: 1.5px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  white-space: nowrap;
+}
+
+.chip:hover {
+  border-color: var(--color-brand-navy);
+  color: var(--color-brand-navy);
+}
+
+.chip--active,
+.chip.chip--active {
+  border-color: var(--color-brand-navy);
+  background: var(--color-brand-navy);
+  color: #fff;
+}
+
+/* Results summary row (above tables) */
+.results-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-3);
+}
+
+.result-count {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.sort-wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.sort-wrap .filter-label {
+  margin: 0;
+}
+
+/* ── Forms (new naming: form-input / form-select / form-textarea) ──
+   Visually identical to the existing .form-control so both
+   conventions look consistent across the app. */
+
+.form-input,
+.form-select,
+.form-textarea {
+  width: 100%;
+  padding: 9px 12px;
+  font-size: var(--text-sm);
+  font-family: inherit;
+  color: var(--color-text-primary);
+  background: var(--color-surface);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  transition: border-color var(--transition-base), box-shadow var(--transition-base);
+}
+
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  outline: none;
+  border-color: var(--color-border-focus);
+  box-shadow: 0 0 0 3px rgba(38, 53, 128, 0.12);
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 80px;
+  line-height: 1.5;
+}
+
+.form-select {
+  cursor: pointer;
+}
+
+.form-select--sm {
+  padding: 5px 10px;
+  font-size: var(--text-xs);
+  width: auto;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
+}
+
+.form-grid--2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+@media (max-width: 640px) {
+  .form-grid--2 { grid-template-columns: 1fr; }
+}
+
+.form-group--span2 {
+  grid-column: 1 / -1;
+}
+
+.form-label--required::after {
+  content: ' *';
+  color: var(--color-rejected);
+}
+
+.label-sm {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* Selected-point preview card (History submit form) */
+.point-preview.card--inset {
+  padding: var(--space-4);
+  background: var(--color-bg);
+  border-style: dashed;
+}
+
+.point-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+}
+
+/* Autocomplete-style search results dropdown (point search, etc.) */
+.dropdown-results {
+  position: absolute;
+  z-index: var(--z-dropdown);
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  max-height: 260px;
+  overflow-y: auto;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+}
+
+.dropdown-results .dropdown-result-item {
+  padding: 10px 14px;
+  font-size: var(--text-sm);
+  cursor: pointer;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.dropdown-results .dropdown-result-item:last-child { border-bottom: none; }
+.dropdown-results .dropdown-result-item:hover { background: var(--color-surface-overlay); }
+
+/* Checkbox / radio label rows (Reports export options) */
+.checkbox-label,
+.radio-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  margin-bottom: var(--space-2);
+}
+
+.checkbox-label input,
+.radio-label input {
+  accent-color: var(--color-brand-navy);
+  cursor: pointer;
+}
+
+.radio-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+
+.grid--2 {
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-4);
+}
+
+@media (max-width: 768px) {
+  .grid--2 { grid-template-columns: 1fr; }
+}
+
+/* ── Buttons (new naming: btn--success / btn--warning / btn--danger / btn-xs) ── */
+
+.btn-xs {
+  padding: 4px 9px;
+  font-size: 11px;
+  gap: 4px;
+}
+
+.btn--success,
+.btn-success {
+  background: var(--color-brand-green);
+  border-color: var(--color-brand-green);
+  color: #fff;
+}
+.btn--success:hover { background: var(--color-brand-green-mid); }
+
+.btn--warning,
+.btn-warning {
+  background: var(--color-pending);
+  border-color: var(--color-pending);
+  color: #fff;
+}
+.btn--warning:hover { opacity: 0.9; }
+
+.btn--danger {
+  background: var(--color-rejected);
+  border-color: var(--color-rejected);
+  color: #fff;
+}
+.btn--danger:hover { opacity: 0.9; }
+
+/* ── Badges (new naming: badge--approved / badge--sm / badge--crit-*) ── */
+
+.badge--approved  { background: var(--color-approved-bg);  color: var(--color-approved); }
+.badge--rejected  { background: var(--color-rejected-bg);  color: var(--color-rejected); }
+.badge--pending   { background: var(--color-pending-bg);   color: var(--color-pending); }
+.badge--recalled  { background: var(--color-recalled-bg);  color: var(--color-recalled); }
+.badge--corrected { background: var(--color-corrected-bg); color: var(--color-corrected); }
+.badge--critical  { background: var(--color-critical-bg);  color: var(--color-critical); }
+.badge--high      { background: var(--color-high-bg);      color: var(--color-high); }
+.badge--medium    { background: var(--color-medium-bg);    color: var(--color-medium); }
+.badge--low       { background: var(--color-low-bg);       color: var(--color-low); }
+.badge--info      { background: var(--color-info-bg);      color: var(--color-info); }
+
+/* Criticality-prefixed variant used in detail views / notification feed */
+.badge--crit-critical { background: var(--color-critical-bg); color: var(--color-critical); }
+.badge--crit-high     { background: var(--color-high-bg);     color: var(--color-high); }
+.badge--crit-medium   { background: var(--color-medium-bg);   color: var(--color-medium); }
+.badge--crit-low      { background: var(--color-low-bg);      color: var(--color-low); }
+.badge--crit-info     { background: var(--color-info-bg);     color: var(--color-info); }
+
+.badge--sm {
+  font-size: 10px;
+  padding: 2px 7px;
+}
+
+/* ── Cards ──────────────────────────────────────────────────── */
+
+.card--flush .card-body,
+.card--flush > .table-wrap {
+  padding: 0;
+}
+
+.card--inset {
+  background: var(--color-bg);
+  border-style: dashed;
+}
+
+/* ── Tables (new naming alongside .data-table) ─────────────── */
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.table-row { /* real <tr> rows in the new table markup; identical to .data-table tbody tr */
+  border-bottom: 1px solid var(--color-border);
+  transition: background var(--transition-fast);
+}
+
+.table-row:hover { background: var(--color-surface-overlay); }
+.table-row:last-child { border-bottom: none; }
+
+.cell-primary {
+  font-weight: 600;
+  color: var(--color-text-primary);
+  font-size: var(--text-sm);
+}
+
+.cell-secondary {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+.action-btns {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+
+[dir="rtl"] .action-btns {
+  justify-content: flex-start;
+}
+
+.table-empty {
+  padding: var(--space-10) var(--space-4) !important;
+  text-align: center;
+  color: var(--color-text-muted);
+}
+
+.table-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-8) var(--space-4);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+
+.table-loading-row td { border-bottom: none; }
+
+.table-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  padding: var(--space-3) var(--space-5);
+  border-top: 1px solid var(--color-border);
+}
+
+/* Pagination buttons used by the new-structure pages (history,
+   notifications, analysis, users, reports) — previously this had
+   only a `cursor:pointer` rule for [data-page], no real button
+   styling at all (invisible/unstyled controls). Mirror the existing
+   .page-btn look used by points.html so pagination renders
+   consistently across both page templates. */
+.pagination-btn {
+  min-width: 30px;
+  height: 30px;
+  padding: 0 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.pagination-btn:hover { border-color: var(--color-brand-navy); color: var(--color-brand-navy); }
+.pagination-btn--active { background: var(--color-brand-navy); color: #fff; border-color: var(--color-brand-navy); }
+.pagination-btn:disabled { opacity: 0.4; pointer-events: none; }
+
+.mono {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+}
+
+.link {
+  color: var(--color-brand-navy);
+  text-decoration: underline;
+}
+.link:hover { color: var(--color-brand-navy-mid); }
+
+/* ── Modals (new naming alongside core.js's injected .modal-overlay) ── */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 41, 0.65);
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6);
+  backdrop-filter: blur(3px);
+}
+
+.modal-backdrop[hidden] { display: none; }
+
+.modal-backdrop .modal {
+  width: 100%;
+  max-width: 560px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal--sm { max-width: 420px; }
+.modal--lg { max-width: 780px; }
+
+.modal-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  color: var(--color-text-muted);
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--transition-base);
+}
+
+.modal-close:hover {
+  background: var(--color-surface-overlay);
+}
+
+/* ── Detail Views (record/analysis detail modals) ──────────── */
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-5);
+}
+
+.detail-section {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+}
+
+.detail-section--danger {
+  border-color: var(--color-rejected);
+  background: var(--color-rejected-bg);
+}
+
+.detail-section-title {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-3);
+}
+
+.detail-dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px var(--space-4);
+  font-size: var(--text-sm);
+}
+
+.detail-dl dt {
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+.detail-dl dd {
+  color: var(--color-text-primary);
+  text-align: right;
+}
+
+[dir="rtl"] .detail-dl dd {
+  text-align: left;
+}
+
+/* ── Alerts (new naming alongside .alert-success / .alert-warning) ── */
+
+.alert--success {
+  background: var(--color-approved-bg);
+  border-color: var(--color-approved);
+  color: #065f46;
+}
+
+.alert--warning {
+  background: var(--color-pending-bg);
+  border-color: var(--color-pending);
+  color: #92400e;
+}
+
+/* ── Settings page content panel ───────────────────────────── */
+
+.settings-content {
+  min-width: 0;
+}
+
+/* ── Small layout utilities used by a handful of pages ─────── */
+
+.text-2xl { font-size: var(--text-2xl); }
+.text-center { text-align: center; }
+.flex-wrap { flex-wrap: wrap; }
+.items-end { align-items: flex-end; }

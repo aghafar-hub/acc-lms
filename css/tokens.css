@@ -1,0 +1,128 @@
+/* ============================================================
+   ACC LMS — Design Tokens
+   Arabian Cement Company Lubrication Management System
+   Phase 4 — Frontend Foundation
+   ============================================================ */
+
+:root {
+  /* Brand Colors — derived from ACC logo (navy/green/white) */
+  --color-brand-navy:      #1E2B5E;
+  --color-brand-navy-dark: #141D42;
+  --color-brand-navy-mid:  #263580;
+  --color-brand-green:     #2D7A2D;
+  --color-brand-green-mid: #3A9E3A;
+  --color-brand-green-lt:  #4BBF4B;
+
+  /* Surface Colors */
+  --color-bg:              #F0F2F7;
+  --color-surface:         #FFFFFF;
+  --color-surface-raised:  #FFFFFF;
+  --color-surface-overlay: rgba(30, 43, 94, 0.06);
+  --color-sidebar:         #1E2B5E;
+  --color-sidebar-active:  #263580;
+  --color-header:          #FFFFFF;
+
+  /* Text Colors */
+  --color-text-primary:    #0F1729;
+  --color-text-secondary:  #4A5568;
+  --color-text-muted:      #718096;
+  --color-text-inverse:    #FFFFFF;
+  --color-text-sidebar:    rgba(255,255,255,0.85);
+  --color-text-sidebar-muted: rgba(255,255,255,0.55);
+
+  /* Status Colors */
+  --color-pending:         #D97706;
+  --color-pending-bg:      #FEF3C7;
+  --color-approved:        #059669;
+  --color-approved-bg:     #D1FAE5;
+  --color-rejected:        #DC2626;
+  --color-rejected-bg:     #FEE2E2;
+  --color-recalled:        #7C3AED;
+  --color-recalled-bg:     #EDE9FE;
+  --color-corrected:       #0284C7;
+  --color-corrected-bg:    #E0F2FE;
+  --color-info:            #0284C7;
+  --color-info-bg:         #E0F2FE;
+
+  /* Criticality Colors */
+  --color-critical:        #DC2626;
+  --color-critical-bg:     #FEE2E2;
+  --color-high:            #D97706;
+  --color-high-bg:         #FEF3C7;
+  --color-medium:          #0284C7;
+  --color-medium-bg:       #E0F2FE;
+  --color-low:             #059669;
+  --color-low-bg:          #D1FAE5;
+
+  /* Border */
+  --color-border:          #E2E8F0;
+  --color-border-focus:    #263580;
+
+  /* Shadows */
+  --shadow-sm:    0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-md:    0 4px 12px rgba(0,0,0,0.10), 0 2px 4px rgba(0,0,0,0.06);
+  --shadow-lg:    0 8px 24px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.06);
+  --shadow-xl:    0 16px 48px rgba(0,0,0,0.16);
+
+  /* Radius */
+  --radius-sm:   6px;
+  --radius-md:   10px;
+  --radius-lg:   14px;
+  --radius-xl:   20px;
+  --radius-full: 9999px;
+
+  /* Typography */
+  --font-sans:   'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  --font-arabic: 'Cairo', 'Noto Sans Arabic', 'Segoe UI', sans-serif;
+  --font-mono:   'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+
+  /* Type Scale */
+  --text-xs:   0.75rem;    /* 12px */
+  --text-sm:   0.8125rem;  /* 13px */
+  --text-base: 0.9375rem;  /* 15px */
+  --text-md:   1rem;       /* 16px */
+  --text-lg:   1.125rem;   /* 18px */
+  --text-xl:   1.25rem;    /* 20px */
+  --text-2xl:  1.5rem;     /* 24px */
+  --text-3xl:  1.875rem;   /* 30px */
+
+  /* Spacing */
+  --space-1:  0.25rem;
+  --space-2:  0.5rem;
+  --space-3:  0.75rem;
+  --space-4:  1rem;
+  --space-5:  1.25rem;
+  --space-6:  1.5rem;
+  --space-8:  2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+
+  /* Layout */
+  --sidebar-width:          240px;
+  --sidebar-collapsed:      64px;
+  --header-height:          60px;
+  --content-max-width:      1400px;
+
+  /* Transitions */
+  --transition-fast:   120ms ease;
+  --transition-base:   200ms ease;
+  --transition-slow:   320ms ease;
+  --transition-layout: 280ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Z-Index */
+  --z-sidebar:   100;
+  --z-header:    110;
+  --z-dropdown:  200;
+  --z-modal:     300;
+  --z-toast:     400;
+  --z-tooltip:   500;
+}
+
+/* RTL support */
+[dir="rtl"] {
+  --font-primary: var(--font-arabic);
+}
+[dir="ltr"] {
+  --font-primary: var(--font-sans);
+}

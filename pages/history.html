@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title data-i18n="history.title">Change History — ACC LMS</title>
+  <link rel="icon" href="../assets/favicon.ico" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Cairo:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/tokens.css" />
+  <link rel="stylesheet" href="../css/base.css" />
+  <link rel="stylesheet" href="../css/sidebar.css" />
+  <link rel="stylesheet" href="../css/components.css" />
+  <link rel="manifest" href="../manifest.json">
+  <link rel="stylesheet" href="../css/print.css" media="print">
+  <meta name="theme-color" content="#1E2B5E">
+
+  <!-- ═══════════════════════════════════════════════
+       PHASE 7: Inline styles for photo viewer and
+       offline queue indicator (P-009, F-04, F-05)
+  ═══════════════════════════════════════════════ -->
+  <style>
+    /* Photo count badge on view-photos button */
+    .btn-photos { position: relative; gap: 4px; }
+    .btn-photos .photo-count-badge {
+      display: inline-flex; align-items: center; justify-content: center;
+      background: var(--color-primary); color: #fff;
+      font-size: 10px; font-weight: 700; border-radius: 10px;
+      padding: 0 5px; min-width: 16px; height: 16px; line-height: 1;
+    }
+
+    /* Offline queue banner */
+    .offline-queue-bar {
+      display: none; align-items: center; gap: 8px;
+      background: var(--color-warning-bg, #fffbea);
+      border: 1px solid var(--color-warning, #f59e0b);
+      border-radius: var(--radius-md, 8px);
+      padding: 8px 12px; margin-bottom: 12px; font-size: 13px;
+    }
+    .offline-queue-bar.visible { display: flex; }
+    .offline-queue-bar svg { flex-shrink: 0; color: var(--color-warning, #f59e0b); }
+
+    /* Photo lightbox — full specs from core.js v7 */
+    .photo-lightbox {
+      position: fixed; inset: 0; z-index: 9000;
+      background: rgba(0,0,0,0.92); display: flex;
+      flex-direction: column; align-items: center; justify-content: center;
+    }
+    .photo-lightbox[hidden] { display: none; }
+    .photo-lb-header {
+      position: absolute; top: 0; left: 0; right: 0;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 16px;
+      background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
+      z-index: 1;
+    }
+    .photo-lb-title { color: #fff; font-size: 13px; font-weight: 500; opacity: 0.9; }
+    .photo-lb-close {
+      background: none; border: none; color: #fff; cursor: pointer;
+      opacity: 0.8; padding: 4px; line-height: 1;
+    }
+    .photo-lb-close:hover { opacity: 1; }
+    .photo-lb-main {
+      position: relative; width: 100%; flex: 1;
+      display: flex; align-items: center; justify-content: center;
+      overflow: hidden;
+    }
+    .photo-lb-img-wrap {
+      max-width: 90vw; max-height: 75vh;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .photo-lb-img-wrap img {
+      max-width: 100%; max-height: 75vh;
+      object-fit: contain; border-radius: 4px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    }
+    .photo-lb-spinner {
+      width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.2);
+      border-top-color: #fff; border-radius: 50%;
+      animation: lb-spin 0.7s linear infinite;
+    }
+    @keyframes lb-spin { to { transform: rotate(360deg); } }
+    .photo-lb-nav {
+      position: absolute; top: 50%; transform: translateY(-50%);
+      background: rgba(255,255,255,0.15); border: none; color: #fff;
+      width: 44px; height: 44px; border-radius: 50%; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      backdrop-filter: blur(4px); transition: background 0.15s;
+    }
+    .photo-lb-nav:hover { background: rgba(255,255,255,0.28); }
+    .photo-lb-nav:disabled { opacity: 0.25; cursor: default; }
+    .photo-lb-nav--prev { left: 12px; }
+    .photo-lb-nav--next { right: 12px; }
+    .photo-lb-strip {
+      display: flex; gap: 8px; padding: 12px 16px;
+      overflow-x: auto; max-width: 100%;
+      background: linear-gradient(to top, rgba(0,0,0,0.6), transparent);
+    }
+    .photo-lb-thumb {
+      width: 56px; height: 56px; border-radius: 6px; object-fit: cover;
+      cursor: pointer; opacity: 0.55; flex-shrink: 0;
+      border: 2px solid transparent; transition: opacity 0.15s, border-color 0.15s;
+    }
+    .photo-lb-thumb.active { opacity: 1; border-color: #fff; }
+    .photo-lb-meta {
+      position: absolute; bottom: 80px; left: 0; right: 0;
+      display: flex; align-items: center; justify-content: center; gap: 12px;
+      padding: 0 16px;
+    }
+    .photo-lb-filename {
+      color: rgba(255,255,255,0.7); font-size: 12px;
+      max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .photo-lb-counter { color: rgba(255,255,255,0.5); font-size: 12px; }
+    .photo-lb-fullscreen-btn {
+      background: none; border: none; color: rgba(255,255,255,0.7);
+      cursor: pointer; padding: 2px; line-height: 1;
+    }
+    .photo-lb-fullscreen-btn:hover { color: #fff; }
+    .photo-lb-admin {
+      position: absolute; bottom: 80px; right: 16px;
+    }
+    .photo-lb-admin .btn-delete-photo {
+      background: var(--color-danger, #dc2626); color: #fff;
+      border: none; border-radius: var(--radius-sm, 6px);
+      padding: 6px 12px; font-size: 12px; cursor: pointer;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .photo-lb-admin .btn-delete-photo:hover { opacity: 0.85; }
+
+    /* P-009: Pagination via data-page delegation */
+    .pagination-btn[data-page] { cursor: pointer; }
+    .pagination-btn--active { font-weight: 600; }
+
+    /* Photos column */
+    .cell-photos { white-space: nowrap; }
+
+    /* Error state in lightbox */
+    .photo-lb-error {
+      color: rgba(255,255,255,0.6); text-align: center; font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-layout" id="appLayout">
+    <!-- Shell injected by shell.js -->
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="main-wrapper">
+      <header class="app-header" id="appHeader"></header>
+      <main class="main-content">
+
+        <!-- Offline Queue Banner (F-05 / P-007) -->
+        <div class="offline-queue-bar" id="offlineQueueBar">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M1 6s4-4 11-4 11 4 11 4"/>
+            <path d="M1 12s4-4 11-4 11 4 11 4"/>
+            <line x1="2" y1="20" x2="22" y2="20"/>
+            <line x1="4" y1="4" x2="20" y2="20"/>
+          </svg>
+          <span id="offlineQueueMsg" data-i18n="offline.queueMsg">You are offline. <strong id="offlineQueueCount">0</strong> submission(s) queued.</span>
+          <button class="btn btn-ghost btn-xs" id="btnFlushQueue" data-i18n="offline.retryNow">Retry Now</button>
+        </div>
+
+        <!-- Page Header -->
+        <div class="page-header">
+          <div class="page-header-left">
+            <h1 class="page-title" data-i18n="history.pageTitle">Change History</h1>
+            <p class="page-subtitle" data-i18n="history.pageSubtitle">All oil change submissions and their approval status</p>
+          </div>
+          <div class="page-header-actions">
+            <button class="btn btn-primary" id="btnSubmitOilChange"
+                    data-permission="history.create">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <span data-i18n="history.submitOilChange">Submit Oil Change</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Filters Bar -->
+        <div class="filter-bar card" id="filterBar">
+          <div class="filter-row">
+            <!-- Search -->
+            <div class="filter-field filter-field--grow">
+              <label class="filter-label" data-i18n="common.search">Search</label>
+              <div class="input-icon-wrap">
+                <svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" id="searchInput" class="form-input input-with-icon"
+                       data-i18n-placeholder="history.searchPlaceholder"
+                       placeholder="Search by point ID, location, technician…" />
+              </div>
+            </div>
+
+            <!-- Status Filter -->
+            <div class="filter-field">
+              <label class="filter-label" data-i18n="common.status">Status</label>
+              <select id="statusFilter" class="form-select">
+                <option value="" data-i18n="common.allStatuses">All Statuses</option>
+                <option value="PENDING" data-i18n="status.pending">Pending</option>
+                <option value="APPROVED" data-i18n="status.approved">Approved</option>
+                <option value="REJECTED" data-i18n="status.rejected">Rejected</option>
+                <option value="RECALLED" data-i18n="status.recalled">Recalled</option>
+                <option value="CORRECTED" data-i18n="status.corrected">Corrected</option>
+              </select>
+            </div>
+
+            <!-- Date From -->
+            <div class="filter-field">
+              <label class="filter-label" data-i18n="common.dateFrom">Date From</label>
+              <input type="date" id="dateFrom" class="form-input" />
+            </div>
+
+            <!-- Date To -->
+            <div class="filter-field">
+              <label class="filter-label" data-i18n="common.dateTo">Date To</label>
+              <input type="date" id="dateTo" class="form-input" />
+            </div>
+
+            <!-- Criticality -->
+            <div class="filter-field">
+              <label class="filter-label" data-i18n="common.criticality">Criticality</label>
+              <select id="criticalityFilter" class="form-select">
+                <option value="" data-i18n="common.all">All</option>
+                <option value="CRITICAL" data-i18n="crit.critical">Critical</option>
+                <option value="HIGH" data-i18n="crit.high">High</option>
+                <option value="MEDIUM" data-i18n="crit.medium">Medium</option>
+                <option value="LOW" data-i18n="crit.low">Low</option>
+              </select>
+            </div>
+
+            <button class="btn btn-ghost btn-sm" id="btnResetFilters" data-i18n="common.reset">Reset</button>
+          </div>
+
+          <!-- Quick Filter Chips -->
+          <div class="chip-row" id="quickChips">
+            <button class="chip chip--active" data-filter="all" data-i18n="common.all">All</button>
+            <button class="chip" data-filter="mine" data-i18n="history.mine">My Records</button>
+            <button class="chip" data-filter="pending" data-i18n="status.pending">Pending</button>
+            <button class="chip" data-filter="approved" data-i18n="status.approved">Approved</button>
+            <button class="chip" data-filter="rejected" data-i18n="status.rejected">Rejected</button>
+            <button class="chip" data-filter="overdue" data-i18n="common.overdue">Overdue</button>
+          </div>
+        </div>
+
+        <!-- Results Summary -->
+        <div class="results-summary" id="resultsSummary">
+          <span id="resultCount" class="result-count">— records</span>
+          <div class="sort-wrap">
+            <label class="filter-label" data-i18n="common.sortBy">Sort by</label>
+            <select id="sortSelect" class="form-select form-select--sm">
+              <option value="date_desc" data-i18n="sort.dateNewest">Date (Newest)</option>
+              <option value="date_asc" data-i18n="sort.dateOldest">Date (Oldest)</option>
+              <option value="criticality" data-i18n="sort.criticality">Criticality</option>
+              <option value="status" data-i18n="sort.status">Status</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- History Table -->
+        <div class="card card--flush">
+          <div class="table-wrap" id="historyTableWrap">
+            <table class="data-table" id="historyTable">
+              <thead>
+                <tr>
+                  <th data-i18n="history.col.id">Record ID</th>
+                  <th data-i18n="history.col.point">Point</th>
+                  <th data-i18n="history.col.location">Location</th>
+                  <th data-i18n="history.col.criticality">Criticality</th>
+                  <th data-i18n="history.col.changeDate">Change Date</th>
+                  <th data-i18n="history.col.technician">Technician</th>
+                  <th data-i18n="history.col.lubricant">Lubricant</th>
+                  <th data-i18n="history.col.photos">Photos</th>
+                  <th data-i18n="history.col.status">Status</th>
+                  <th data-i18n="history.col.actions">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="historyTbody">
+                <tr class="table-loading-row">
+                  <td colspan="10">
+                    <div class="table-loading">
+                      <div class="spinner"></div>
+                      <span data-i18n="common.loading">Loading…</span>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Pagination — P-009: data-page delegation, no inline onclick -->
+          <div class="table-footer" id="tableFooter">
+            <span id="pageInfo" class="page-info"></span>
+            <div class="pagination" id="pagination"></div>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       MODAL: Submit Oil Change
+  ═══════════════════════════════════════════════════════ -->
+  <div class="modal-backdrop" id="submitModal" role="dialog" aria-modal="true" aria-labelledby="submitModalTitle" hidden>
+    <div class="modal modal--lg">
+      <div class="modal-header">
+        <h2 class="modal-title" id="submitModalTitle" data-i18n="history.submitModal.title">Submit Oil Change</h2>
+        <button class="modal-close" data-modal-close="submitModal" aria-label="Close">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <form id="submitForm" novalidate>
+
+          <div class="form-grid form-grid--2">
+            <!-- Point ID -->
+            <div class="form-group form-group--span2">
+              <label class="form-label form-label--required" data-i18n="history.form.pointId">Lubrication Point</label>
+              <div class="input-icon-wrap">
+                <svg class="input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <input type="text" id="pointSearch" class="form-input input-with-icon"
+                       placeholder="Search by Point ID or description…"
+                       data-i18n-placeholder="history.form.pointSearchPlaceholder"
+                       autocomplete="off" />
+              </div>
+              <div class="dropdown-results" id="pointDropdown" hidden></div>
+              <input type="hidden" id="selectedPointId" name="pointId" required />
+              <!-- Selected point preview -->
+              <div class="point-preview card card--inset" id="pointPreview" hidden>
+                <div class="point-preview-grid">
+                  <div><span class="label-sm" data-i18n="common.pointId">Point ID</span><br/><strong id="pvPointId">—</strong></div>
+                  <div><span class="label-sm" data-i18n="common.location">Location</span><br/><span id="pvLocation">—</span></div>
+                  <div><span class="label-sm" data-i18n="common.equipment">Equipment</span><br/><span id="pvEquipment">—</span></div>
+                  <div><span class="label-sm" data-i18n="common.criticality">Criticality</span><br/><span id="pvCriticality" class="badge">—</span></div>
+                  <div><span class="label-sm" data-i18n="common.lubricant">Recommended Lubricant</span><br/><span id="pvLubricant">—</span></div>
+                  <div><span class="label-sm" data-i18n="common.interval">Interval</span><br/><span id="pvInterval">—</span></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Change Date -->
+            <div class="form-group">
+              <label class="form-label form-label--required" for="changeDate" data-i18n="history.form.changeDate">Change Date</label>
+              <input type="date" id="changeDate" name="changeDate" class="form-input" required />
+            </div>
+
+            <!-- Lubricant Used -->
+            <div class="form-group">
+              <label class="form-label form-label--required" for="lubricantUsed" data-i18n="history.form.lubricantUsed">Lubricant Used</label>
+              <input type="text" id="lubricantUsed" name="lubricantUsed" class="form-input" required
+                     placeholder="e.g. Shell Omala 220" />
+            </div>
+
+            <!-- Quantity Used -->
+            <div class="form-group">
+              <label class="form-label" for="quantityUsed" data-i18n="history.form.quantity">Quantity (L)</label>
+              <input type="number" id="quantityUsed" name="quantityUsed" class="form-input"
+                     min="0" step="0.1" placeholder="0.0" />
+            </div>
+
+            <!-- Method -->
+            <div class="form-group">
+              <label class="form-label" for="changeMethod" data-i18n="history.form.method">Change Method</label>
+              <select id="changeMethod" name="changeMethod" class="form-select">
+                <option value="" data-i18n="common.selectOne">Select…</option>
+                <option value="FULL_DRAIN" data-i18n="method.fullDrain">Full Drain &amp; Fill</option>
+                <option value="TOP_UP" data-i18n="method.topUp">Top Up</option>
+                <option value="GREASE" data-i18n="method.grease">Grease Application</option>
+                <option value="FLUSH" data-i18n="method.flush">Flush &amp; Fill</option>
+              </select>
+            </div>
+
+            <!-- Equipment Condition -->
+            <div class="form-group">
+              <label class="form-label" for="equipmentCondition" data-i18n="history.form.condition">Equipment Condition</label>
+              <select id="equipmentCondition" name="equipmentCondition" class="form-select">
+                <option value="" data-i18n="common.selectOne">Select…</option>
+                <option value="GOOD" data-i18n="condition.good">Good</option>
+                <option value="FAIR" data-i18n="condition.fair">Fair</option>
+                <option value="POOR" data-i18n="condition.poor">Poor</option>
+                <option value="CRITICAL" data-i18n="condition.critical">Critical — Needs Attention</option>
+              </select>
+            </div>
+
+            <!-- Notes -->
+            <div class="form-group form-group--span2">
+              <label class="form-label" for="submitNotes" data-i18n="history.form.notes">Notes</label>
+              <textarea id="submitNotes" name="notes" class="form-textarea" rows="3"
+                        placeholder="Any observations, issues, or relevant notes…"
+                        data-i18n-placeholder="history.form.notesPlaceholder"></textarea>
+            </div>
+
+            <!-- Photo Upload — Phase 7: uses PhotoViewer.buildPickerUI from core.js v7 -->
+            <div class="form-group form-group--span2">
+              <label class="form-label" data-i18n="history.form.photos">
+                Photos <span style="font-weight:400;color:var(--color-text-muted);">(optional, max 3)</span>
+              </label>
+              <div id="photo-upload-container"></div>
+            </div>
+
+            <!-- Oil Change Required notice -->
+            <div class="form-group form-group--span2" id="oilRequiredNotice" hidden>
+              <div class="alert alert--warning">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                <span data-i18n="history.form.oilRequiredNotice">This point has an <strong>Oil Change Required</strong> flag set from oil analysis. This submission will clear that flag upon approval.</span>
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-modal-close="submitModal" data-i18n="common.cancel">Cancel</button>
+        <button class="btn btn-primary" id="confirmSubmit" data-i18n="history.form.submitBtn">Submit Oil Change</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       MODAL: Record Detail
+  ═══════════════════════════════════════════════════════ -->
+  <div class="modal-backdrop" id="detailModal" role="dialog" aria-modal="true" aria-labelledby="detailModalTitle" hidden>
+    <div class="modal modal--lg">
+      <div class="modal-header">
+        <h2 class="modal-title" id="detailModalTitle">Record Detail</h2>
+        <button class="modal-close" data-modal-close="detailModal" aria-label="Close">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body" id="detailModalBody">
+        <div class="detail-grid" id="recordDetailGrid"></div>
+      </div>
+      <div class="modal-footer" id="detailModalFooter">
+        <!-- Actions injected by role -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       MODAL: Recall Confirm
+  ═══════════════════════════════════════════════════════ -->
+  <div class="modal-backdrop" id="recallModal" role="dialog" aria-modal="true" hidden>
+    <div class="modal modal--sm">
+      <div class="modal-header">
+        <h2 class="modal-title" data-i18n="history.recall.title">Recall Submission</h2>
+        <button class="modal-close" data-modal-close="recallModal" aria-label="Close">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p data-i18n="history.recall.confirm">Are you sure you want to recall this submission? It will return to RECALLED status and can no longer be approved.</p>
+        <input type="hidden" id="recallHistoryId" />
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" data-modal-close="recallModal" data-i18n="common.cancel">Cancel</button>
+        <button class="btn btn-warning" id="confirmRecall" data-i18n="history.recall.confirm_btn">Recall</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════
+       PHASE 7: Photo Lightbox (F-04 / SEC-009 compliant)
+       Rendered by PhotoViewer.open() in core.js v7
+  ═══════════════════════════════════════════════════════ -->
+  <div class="photo-lightbox" id="photoLightbox" hidden role="dialog" aria-modal="true" aria-label="Photo Viewer">
+    <!-- Header -->
+    <div class="photo-lb-header">
+      <span class="photo-lb-title" id="photoLbTitle">Photos</span>
+      <button class="photo-lb-close" id="photoLbClose" aria-label="Close photo viewer">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Main image area -->
+    <div class="photo-lb-main" id="photoLbMain">
+      <!-- Nav: Previous -->
+      <button class="photo-lb-nav photo-lb-nav--prev" id="photoLbPrev" aria-label="Previous photo">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </button>
+
+      <!-- Image wrapper -->
+      <div class="photo-lb-img-wrap" id="photoLbImgWrap">
+        <div class="photo-lb-spinner" id="photoLbSpinner"></div>
+      </div>
+
+      <!-- Nav: Next -->
+      <button class="photo-lb-nav photo-lb-nav--next" id="photoLbNext" aria-label="Next photo">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <polyline points="9 18 15 12 9 6"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Meta row: filename + counter + fullscreen -->
+    <div class="photo-lb-meta">
+      <span class="photo-lb-filename" id="photoLbFilename"></span>
+      <span class="photo-lb-counter" id="photoLbCounter"></span>
+      <a class="photo-lb-fullscreen-btn" id="photoLbFullscreen" target="_blank" rel="noopener"
+         title="Open full size" aria-label="Open full size in new tab">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
+        </svg>
+      </a>
+      <!-- ADMIN: Delete button (conditionally shown) -->
+      <div class="photo-lb-admin" id="photoLbAdmin" hidden>
+        <button class="btn-delete-photo" id="photoLbDelete">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
+          </svg>
+          <span data-i18n="photo.deletePhoto">Delete Photo</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Thumbnail strip -->
+    <div class="photo-lb-strip" id="photoLbStrip"></div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+  <!-- Search Overlay (shell) -->
+  <div class="search-overlay" id="searchOverlay" hidden></div>
+
+  <script src="../js/core.js"></script>
+  <script src="../js/shell.js"></script>
+  <script>
+  /* ── History Page Controller v7.0.0 ────────────────────
+     Phase 7 changes:
+       - Photos column in table (F-04)
+       - view-photos button per row using PhotoViewer.open()
+       - Admin delete integrated in lightbox (F-04)
+       - data-modal-close delegation replaces per-button listeners
+       - Pagination event delegation via data-page (P-009)
+       - OfflineQueue status bar (F-05)
+       - All window.* action handlers use data-action delegation
+  ─────────────────────────────────────────────────────── */
+  (function() {
+    'use strict';
+
+    let state = {
+      records: [],
+      filtered: [],
+      page: 1,
+      pageSize: 25,
+      sort: 'date_desc',
+      filters: { search: '', status: '', criticality: '', dateFrom: '', dateTo: '', chip: 'all' },
+      activeRecordId: null,
+    };
+
+    // ── Init ──────────────────────────────────────────────
+    App.init({ requireAuth: true }).then(() => {
+      Shell.init();
+      setupFilters();
+      setupModals();
+      setupSubmitForm();
+      setupDelegation();    // Phase 7: unified event delegation
+      setupOfflineQueue();  // Phase 7: offline queue banner
+      loadHistory();
+      I18n._rerender();
+    });
+
+    // ── Phase 7: Event Delegation Hub (P-009) ─────────────
+    // Replaces all inline onclick= and per-element listeners
+    function setupDelegation() {
+      document.addEventListener('click', handleGlobalClick);
+    }
+
+    function handleGlobalClick(e) {
+      // Modal close via data-modal-close attribute
+      const closeTarget = e.target.closest('[data-modal-close]');
+      if (closeTarget) {
+        Modal.close(closeTarget.dataset.modalClose);
+        return;
+      }
+
+      // Pagination via data-page attribute (P-009)
+      const pageBtn = e.target.closest('[data-page]');
+      if (pageBtn && pageBtn.closest('#pagination')) {
+        const pg = parseInt(pageBtn.dataset.page, 10);
+        if (!isNaN(pg) && !pageBtn.disabled) {
+          state.page = pg;
+          renderTable();
+        }
+        return;
+      }
+
+      // Table row actions via data-action
+      const actionBtn = e.target.closest('[data-action]');
+      if (actionBtn) {
+        const action = actionBtn.dataset.action;
+        const id = actionBtn.dataset.id;
+        switch (action) {
+          case 'view':         viewRecord(id); break;
+          case 'recall':       showRecall(id); break;
+          case 'quick-approve': quickApprove(id); break;
+          case 'view-photos':  {
+            const count = parseInt(actionBtn.dataset.count || '0', 10);
+            if (count > 0) PhotoViewer.open(id, Auth.can('history.deletePhoto'));
+            break;
+          }
+          // Detail modal footer actions
+          case 'approve':  approveRecord(id); break;
+          case 'reject':   rejectRecord(id); break;
+          case 'restore':  restoreRecord(id); break;
+          case 'correct':  window.location = `pending.html?correct=${id}`; break;
+          case 'recall-from-detail':
+            showRecall(id);
+            Modal.close('detailModal');
+            break;
+        }
+        return;
+      }
+
+      // Close point dropdown on outside click
+      if (!e.target.closest('#pointSearch')) {
+        const dd = document.getElementById('pointDropdown');
+        if (dd) dd.hidden = true;
+      }
+    }
+
+    // ── Phase 7: Offline Queue Banner ─────────────────────
+    function setupOfflineQueue() {
+      updateOfflineBanner();
+      // Listen for online event to refresh banner
+      window.addEventListener('online', () => {
+        updateOfflineBanner();
+        if (typeof OfflineQueue !== 'undefined' && OfflineQueue.count() > 0) {
+          OfflineQueue.flushQueue();
+        }
+      });
+      window.addEventListener('offline', updateOfflineBanner);
+
+      const btnFlush = document.getElementById('btnFlushQueue');
+      if (btnFlush) {
+        btnFlush.addEventListener('click', () => {
+          if (typeof OfflineQueue !== 'undefined') OfflineQueue.flushQueue();
+          updateOfflineBanner();
+        });
+      }
+
+      // SW message: sync flushed
+      navigator.serviceWorker?.addEventListener('message', e => {
+        if (e.data?.type === 'SYNC_FLUSH') {
+          updateOfflineBanner();
+          loadHistory();
+        }
+      });
+    }
+
+    function updateOfflineBanner() {
+      const bar = document.getElementById('offlineQueueBar');
+      const countEl = document.getElementById('offlineQueueCount');
+      if (!bar) return;
+      const count = (typeof OfflineQueue !== 'undefined') ? OfflineQueue.count() : 0;
+      if (count > 0 || !navigator.onLine) {
+        bar.classList.add('visible');
+        if (countEl) countEl.textContent = count;
+      } else {
+        bar.classList.remove('visible');
+      }
+    }
+
+    // ── Load Data ─────────────────────────────────────────
+    async function loadHistory() {
+      setTableLoading(true);
+      const user = Auth.getUser();
+      const params = {
+        status: state.filters.status || undefined,
+        dateFrom: state.filters.dateFrom || undefined,
+        dateTo: state.filters.dateTo || undefined,
+      };
+      if (user.role === 'TECHNICIAN') params.technicianId = user.UserID;
+
+      const res = await API.getHistory(params);
+      if (res.success) {
+        state.records = res.data || [];
+        applyFilters();
+      } else {
+        Toast.show(res.error || 'Failed to load records', 'error');
+        setTableLoading(false);
+      }
+    }
+
+    // ── Filtering & Sorting ───────────────────────────────
+    function applyFilters() {
+      const { search, status, criticality, dateFrom, dateTo, chip } = state.filters;
+      const user = Auth.getUser();
+
+      let rows = [...state.records];
+
+      if (chip === 'mine')     rows = rows.filter(r => r.TechnicianID === user.UserID);
+      if (chip === 'pending')  rows = rows.filter(r => r.Status === 'PENDING');
+      if (chip === 'approved') rows = rows.filter(r => r.Status === 'APPROVED');
+      if (chip === 'rejected') rows = rows.filter(r => r.Status === 'REJECTED');
+      if (chip === 'overdue')  rows = rows.filter(r => r._isOverdue);
+
+      if (status)      rows = rows.filter(r => r.Status === status);
+      if (criticality) rows = rows.filter(r => r.Criticality === criticality);
+      if (dateFrom)    rows = rows.filter(r => r.ChangeDate >= dateFrom);
+      if (dateTo)      rows = rows.filter(r => r.ChangeDate <= dateTo);
+      if (search) {
+        const q = search.toLowerCase();
+        rows = rows.filter(r =>
+          (r.HistoryID || '').toLowerCase().includes(q) ||
+          (r.PointID || '').toLowerCase().includes(q) ||
+          (r.LocationName || '').toLowerCase().includes(q) ||
+          (r.TechnicianName || '').toLowerCase().includes(q) ||
+          (r.LubricantUsed || '').toLowerCase().includes(q)
+        );
+      }
+
+      rows = sortRows(rows, state.sort);
+      state.filtered = rows;
+      state.page = 1;
+      renderTable();
+    }
+
+    function sortRows(rows, sort) {
+      return rows.sort((a, b) => {
+        switch(sort) {
+          case 'date_desc':    return (b.ChangeDate || '').localeCompare(a.ChangeDate || '');
+          case 'date_asc':     return (a.ChangeDate || '').localeCompare(b.ChangeDate || '');
+          case 'criticality':  return critOrder(a.Criticality) - critOrder(b.Criticality);
+          case 'status':       return (a.Status || '').localeCompare(b.Status || '');
+          default: return 0;
+        }
+      });
+    }
+
+    function critOrder(c) { return {CRITICAL:0,HIGH:1,MEDIUM:2,LOW:3}[c] ?? 9; }
+
+    // ── Render Table ──────────────────────────────────────
+    function renderTable() {
+      const tbody = document.getElementById('historyTbody');
+      const total = state.filtered.length;
+      const start = (state.page - 1) * state.pageSize;
+      const pageRows = state.filtered.slice(start, start + state.pageSize);
+
+      document.getElementById('resultCount').textContent =
+        `${total} ${I18n.t('common.records', 'records')}`;
+
+      if (pageRows.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="10" class="table-empty">
+          <div class="empty-state">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.3"><path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 1 1 0 10h-2"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+            <p>${I18n.t('history.empty', 'No records found')}</p>
+          </div>
+        </td></tr>`;
+        renderPagination(total);
+        return;
+      }
+
+      const user = Auth.getUser();
+      tbody.innerHTML = pageRows.map(r => {
+        const photoCount = r._photoCount || 0;
+        const hasPhotos  = photoCount > 0;
+
+        const canRecall = Auth.can('history.recall') &&
+          r.Status === 'PENDING' &&
+          (user.role === 'ADMIN' || r.TechnicianID === user.UserID);
+        const canApprove = Auth.can('history.approve') && r.Status === 'PENDING' &&
+          r.TechnicianID !== user.UserID;  // SEC: self-approval blocked in UI too
+
+        // Phase 7: Photos column + view-photos button (data-action delegation)
+        const photosCell = hasPhotos
+          ? `<button class="btn btn-ghost btn-xs btn-photos"
+                     data-action="view-photos" data-id="${r.HistoryID}" data-count="${photoCount}"
+                     title="${I18n.t('photo.viewPhotos', 'View Photos')}">
+               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                 <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+                 <polyline points="21 15 16 10 5 21"/>
+               </svg>
+               <span class="photo-count-badge">${photoCount}</span>
+             </button>`
+          : `<span class="text-muted" style="font-size:12px;">—</span>`;
+
+        return `<tr class="table-row" data-id="${r.HistoryID}">
+          <td><code class="mono">${r.HistoryID || '—'}</code></td>
+          <td>
+            <div class="cell-primary">${r.PointID || '—'}</div>
+            <div class="cell-secondary">${r.EquipmentName || ''}</div>
+          </td>
+          <td>${r.LocationName || '—'}</td>
+          <td><span class="badge badge--crit-${(r.Criticality||'').toLowerCase()}">${r.Criticality || '—'}</span></td>
+          <td>${I18n.formatDate(r.ChangeDate)}</td>
+          <td>${r.TechnicianName || '—'}</td>
+          <td>
+            <div class="cell-primary">${r.LubricantUsed || '—'}</div>
+            ${r.QuantityUsed ? `<div class="cell-secondary">${r.QuantityUsed} L</div>` : ''}
+          </td>
+          <td class="cell-photos">${photosCell}</td>
+          <td><span class="badge badge--${(r.Status||'').toLowerCase()}">${I18n.t('status.'+r.Status.toLowerCase(), r.Status)}</span></td>
+          <td>
+            <div class="action-btns">
+              <button class="btn btn-ghost btn-xs" data-action="view" data-id="${r.HistoryID}"
+                      title="${I18n.t('common.view', 'View')}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              </button>
+              ${canRecall ? `<button class="btn btn-ghost btn-xs btn--warning"
+                      data-action="recall" data-id="${r.HistoryID}"
+                      title="${I18n.t('history.recall', 'Recall')}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.1"/></svg>
+              </button>` : ''}
+              ${canApprove ? `<button class="btn btn-ghost btn-xs btn--success"
+                      data-action="quick-approve" data-id="${r.HistoryID}"
+                      title="${I18n.t('common.approve', 'Approve')}">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              </button>` : ''}
+            </div>
+          </td>
+        </tr>`;
+      }).join('');
+
+      renderPagination(total);
+    }
+
+    function setTableLoading(on) {
+      if (on) {
+        document.getElementById('historyTbody').innerHTML = `
+          <tr class="table-loading-row"><td colspan="10">
+            <div class="table-loading"><div class="spinner"></div><span>${I18n.t('common.loading','Loading…')}</span></div>
+          </td></tr>`;
+      }
+    }
+
+    // ── Pagination — P-009: data-page delegation ──────────
+    function renderPagination(total) {
+      const pages = Math.ceil(total / state.pageSize);
+      const pageInfo = document.getElementById('pageInfo');
+      const pg = document.getElementById('pagination');
+      const start = (state.page - 1) * state.pageSize + 1;
+      const end = Math.min(state.page * state.pageSize, total);
+      pageInfo.textContent = total > 0 ? `${start}–${end} of ${total}` : '';
+
+      pg.innerHTML = '';
+      if (pages <= 1) return;
+
+      const makeBtn = (label, page, disabled, active) => {
+        const b = document.createElement('button');
+        b.className = `pagination-btn${active ? ' pagination-btn--active' : ''}`;
+        b.textContent = label;
+        b.disabled = disabled;
+        // P-009: data-page attribute, handled by delegation
+        b.dataset.page = page;
+        return b;
+      };
+
+      pg.appendChild(makeBtn('‹', state.page - 1, state.page === 1, false));
+      for (let i = 1; i <= pages; i++) {
+        if (pages > 7 && Math.abs(i - state.page) > 2 && i !== 1 && i !== pages) {
+          if (i === 2 || i === pages - 1) {
+            const s = document.createElement('span');
+            s.textContent = '…'; s.className = 'pagination-ellipsis';
+            pg.appendChild(s);
+          }
+          continue;
+        }
+        pg.appendChild(makeBtn(i, i, false, i === state.page));
+      }
+      pg.appendChild(makeBtn('›', state.page + 1, state.page === pages, false));
+    }
+
+    // ── Record Actions ────────────────────────────────────
+    async function viewRecord(id) {
+      state.activeRecordId = id;
+      const res = await API.getHistoryRecord(id);
+      if (!res.success) { Toast.show(res.error, 'error'); return; }
+      renderDetailModal(res.data);
+      Modal.open('detailModal');
+    }
+
+    function showRecall(id) {
+      document.getElementById('recallHistoryId').value = id;
+      Modal.open('recallModal');
+    }
+
+    async function quickApprove(id) {
+      if (!confirm(I18n.t('history.quickApproveConfirm', 'Approve this record?'))) return;
+      const res = await API.approveRecord(id, { notes: '' });
+      if (res.success) {
+        Toast.show(I18n.t('history.approved', 'Record approved'), 'success');
+        loadHistory();
+      } else {
+        Toast.show(res.error, 'error');
+      }
+    }
+
+    // ── Detail Modal ──────────────────────────────────────
+    function renderDetailModal(r) {
+      document.getElementById('detailModalTitle').textContent = r.HistoryID;
+      const user = Auth.getUser();
+      const photoCount = r._photoCount || 0;
+      const grid = document.getElementById('recordDetailGrid');
+
+      grid.innerHTML = `
+        <div class="detail-section">
+          <h3 class="detail-section-title">${I18n.t('history.detail.record','Record Info')}</h3>
+          <dl class="detail-dl">
+            <dt>${I18n.t('common.status','Status')}</dt><dd><span class="badge badge--${(r.Status||'').toLowerCase()}">${r.Status}</span></dd>
+            <dt>${I18n.t('history.col.changeDate','Change Date')}</dt><dd>${I18n.formatDate(r.ChangeDate)}</dd>
+            <dt>${I18n.t('history.col.technician','Technician')}</dt><dd>${r.TechnicianName||'—'}</dd>
+            <dt>${I18n.t('history.form.lubricantUsed','Lubricant')}</dt><dd>${r.LubricantUsed||'—'}</dd>
+            <dt>${I18n.t('history.form.quantity','Quantity')}</dt><dd>${r.QuantityUsed ? r.QuantityUsed + ' L' : '—'}</dd>
+            <dt>${I18n.t('history.form.method','Method')}</dt><dd>${r.ChangeMethod||'—'}</dd>
+            <dt>${I18n.t('history.form.condition','Condition')}</dt><dd>${r.EquipmentCondition||'—'}</dd>
+            <dt>${I18n.t('history.form.notes','Notes')}</dt><dd>${r.Notes||'—'}</dd>
+          </dl>
+        </div>
+        ${photoCount > 0 ? `
+        <div class="detail-section">
+          <h3 class="detail-section-title">${I18n.t('photo.photos','Photos')} (${photoCount})</h3>
+          <button class="btn btn-secondary btn-sm" data-action="view-photos"
+                  data-id="${r.HistoryID}" data-count="${photoCount}"
+                  style="margin-top:4px;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+              <polyline points="21 15 16 10 5 21"/>
+            </svg>
+            ${I18n.t('photo.viewPhotos','View Photos')} (${photoCount})
+          </button>
+        </div>` : ''}
+        <div class="detail-section">
+          <h3 class="detail-section-title">${I18n.t('history.detail.point','Point Info')}</h3>
+          <dl class="detail-dl">
+            <dt>${I18n.t('common.pointId','Point ID')}</dt><dd><code class="mono">${r.PointID||'—'}</code></dd>
+            <dt>${I18n.t('common.location','Location')}</dt><dd>${r.LocationName||'—'}</dd>
+            <dt>${I18n.t('common.equipment','Equipment')}</dt><dd>${r.EquipmentName||'—'}</dd>
+            <dt>${I18n.t('common.criticality','Criticality')}</dt><dd><span class="badge badge--crit-${(r.Criticality||'').toLowerCase()}">${r.Criticality||'—'}</span></dd>
+          </dl>
+        </div>
+        ${r.ApprovedBy ? `<div class="detail-section">
+          <h3 class="detail-section-title">${I18n.t('history.detail.approval','Approval Info')}</h3>
+          <dl class="detail-dl">
+            <dt>${I18n.t('history.col.approvedBy','Approved By')}</dt><dd>${r.ApprovedByName||r.ApprovedBy}</dd>
+            <dt>${I18n.t('history.col.approvedAt','Approved At')}</dt><dd>${I18n.formatDatetime(r.ApprovedAt)}</dd>
+            ${r.ApprovalNotes ? `<dt>${I18n.t('common.notes','Notes')}</dt><dd>${r.ApprovalNotes}</dd>` : ''}
+          </dl>
+        </div>` : ''}
+        ${r.RejectedBy ? `<div class="detail-section detail-section--danger">
+          <h3 class="detail-section-title">${I18n.t('history.detail.rejection','Rejection Info')}</h3>
+          <dl class="detail-dl">
+            <dt>${I18n.t('history.col.rejectedBy','Rejected By')}</dt><dd>${r.RejectedByName||r.RejectedBy}</dd>
+            <dt>${I18n.t('history.col.rejectedAt','Rejected At')}</dt><dd>${I18n.formatDatetime(r.RejectedAt)}</dd>
+            <dt>${I18n.t('history.col.rejectionReason','Reason')}</dt><dd>${r.RejectionReason||'—'}</dd>
+          </dl>
+        </div>` : ''}
+      `;
+
+      // Footer actions — all use data-action for delegation (P-009)
+      const footer = document.getElementById('detailModalFooter');
+      const canApprove = Auth.can('history.approve') && r.Status === 'PENDING' && r.TechnicianID !== user.UserID;
+      const canReject  = Auth.can('history.reject')  && r.Status === 'PENDING' && r.TechnicianID !== user.UserID;
+      const canRecall  = Auth.can('history.recall')  && r.Status === 'PENDING' && (user.role === 'ADMIN' || r.TechnicianID === user.UserID);
+      const canRestore = Auth.can('history.restore') && r.Status === 'REJECTED';
+      const canCorrect = Auth.can('history.correct') && r.Status === 'APPROVED';
+
+      footer.innerHTML = `
+        <button class="btn btn-ghost" data-modal-close="detailModal" data-i18n="common.close">Close</button>
+        ${canRecall  ? `<button class="btn btn-warning"   data-action="recall-from-detail" data-id="${r.HistoryID}">${I18n.t('history.recall','Recall')}</button>` : ''}
+        ${canRestore ? `<button class="btn btn-secondary" data-action="restore" data-id="${r.HistoryID}">${I18n.t('history.restore','Restore')}</button>` : ''}
+        ${canReject  ? `<button class="btn btn-danger"    data-action="reject"  data-id="${r.HistoryID}">${I18n.t('common.reject','Reject')}</button>` : ''}
+        ${canApprove ? `<button class="btn btn-primary"   data-action="approve" data-id="${r.HistoryID}">${I18n.t('common.approve','Approve')}</button>` : ''}
+        ${canCorrect ? `<button class="btn btn-secondary" data-action="correct" data-id="${r.HistoryID}">${I18n.t('history.correct','Request Correction')}</button>` : ''}
+      `;
+    }
+
+    async function approveRecord(id) {
+      const notes = prompt(I18n.t('common.approvalNotes','Approval notes (optional):'), '');
+      if (notes === null) return;
+      const res = await API.approveRecord(id, { notes });
+      if (res.success) { Toast.show(I18n.t('history.approved','Record approved'),'success'); Modal.close('detailModal'); loadHistory(); }
+      else Toast.show(res.error,'error');
+    }
+
+    async function rejectRecord(id) {
+      const reason = prompt(I18n.t('common.rejectionReason','Rejection reason (required):'),'');
+      if (!reason) return;
+      const res = await API.rejectRecord(id, { reason });
+      if (res.success) { Toast.show(I18n.t('history.rejected','Record rejected'),'success'); Modal.close('detailModal'); loadHistory(); }
+      else Toast.show(res.error,'error');
+    }
+
+    async function restoreRecord(id) {
+      const reason = prompt(I18n.t('history.restoreReason','Restore reason (required):'),'');
+      if (!reason) return;
+      const res = await API.restoreRecord(id, { reason });
+      if (res.success) { Toast.show(I18n.t('history.restored','Record restored to pending'),'success'); Modal.close('detailModal'); loadHistory(); }
+      else Toast.show(res.error,'error');
+    }
+
+    // ── Recall Modal ──────────────────────────────────────
+    document.getElementById('confirmRecall').addEventListener('click', async () => {
+      const id = document.getElementById('recallHistoryId').value;
+      const res = await API.recallRecord(id);
+      if (res.success) { Toast.show(I18n.t('history.recallSuccess','Submission recalled'),'success'); Modal.close('recallModal'); loadHistory(); }
+      else Toast.show(res.error,'error');
+    });
+
+    // ── Phase 7: Photo Lightbox Controller ────────────────
+    // PhotoViewer.open() from core.js v7 manages photo loading.
+    // Here we wire the DOM elements it expects.
+    (function setupPhotoLightbox() {
+      const lb       = document.getElementById('photoLightbox');
+      const btnClose = document.getElementById('photoLbClose');
+      const btnPrev  = document.getElementById('photoLbPrev');
+      const btnNext  = document.getElementById('photoLbNext');
+      const btnDel   = document.getElementById('photoLbDelete');
+
+      if (!lb) return;
+
+      // Close
+      btnClose.addEventListener('click', () => { lb.hidden = true; document.body.style.overflow = ''; });
+
+      // Keyboard navigation
+      document.addEventListener('keydown', e => {
+        if (lb.hidden) return;
+        if (e.key === 'Escape')      { lb.hidden = true; document.body.style.overflow = ''; }
+        else if (e.key === 'ArrowLeft')  btnPrev.click();
+        else if (e.key === 'ArrowRight') btnNext.click();
+      });
+
+      // Prev / Next forward to PhotoViewer
+      btnPrev.addEventListener('click', () => { if (typeof PhotoViewer !== 'undefined') PhotoViewer.prev(); });
+      btnNext.addEventListener('click', () => { if (typeof PhotoViewer !== 'undefined') PhotoViewer.next(); });
+
+      // Admin delete
+      btnDel.addEventListener('click', async () => {
+        if (!confirm(I18n.t('photo.deleteConfirm', 'Delete this photo? This cannot be undone.'))) return;
+        if (typeof PhotoViewer !== 'undefined') {
+          const ok = await PhotoViewer.deleteCurrent();
+          if (ok) Toast.show(I18n.t('photo.deleted', 'Photo deleted'), 'success');
+          else     Toast.show(I18n.t('photo.deleteError', 'Delete failed'), 'error');
+        }
+      });
+
+      // Thumbnail strip click delegation
+      document.getElementById('photoLbStrip').addEventListener('click', e => {
+        const thumb = e.target.closest('[data-photo-index]');
+        if (thumb && typeof PhotoViewer !== 'undefined') {
+          PhotoViewer.goTo(parseInt(thumb.dataset.photoIndex, 10));
+        }
+      });
+    })();
+
+    // ── Submit Form ───────────────────────────────────────
+    function setupSubmitForm() {
+      document.getElementById('changeDate').value = new Date().toISOString().split('T')[0];
+
+      let pointSearchTimer;
+      document.getElementById('pointSearch').addEventListener('input', (e) => {
+        clearTimeout(pointSearchTimer);
+        const q = e.target.value.trim();
+        if (q.length < 2) { document.getElementById('pointDropdown').hidden = true; return; }
+        pointSearchTimer = setTimeout(() => searchPoints(q), 300);
+      });
+
+      document.getElementById('confirmSubmit').addEventListener('click', handleSubmit);
+    }
+
+    async function searchPoints(q) {
+      const res = await API.getPoints({ search: q, isActive: true });
+      const dd = document.getElementById('pointDropdown');
+      if (!res.success || !res.data?.length) { dd.hidden = true; return; }
+      dd.innerHTML = res.data.slice(0,8).map(p =>
+        `<div class="dropdown-item" data-point='${JSON.stringify(p).replace(/'/g,"&#39;")}'>
+          <strong>${p.PointID}</strong> — ${p.Description||''} <span class="badge badge--crit-${(p.Criticality||'').toLowerCase()} badge--sm">${p.Criticality}</span>
+        </div>`
+      ).join('');
+      dd.hidden = false;
+
+      // Delegation for dropdown items
+      dd.querySelectorAll('.dropdown-item').forEach(item => {
+        item.addEventListener('click', () => {
+          try { selectPoint(JSON.parse(item.dataset.point)); } catch(e) { /* ignore */ }
+        });
+      });
+    }
+
+    function selectPoint(p) {
+      document.getElementById('selectedPointId').value = p.PointID;
+      document.getElementById('pointSearch').value = `${p.PointID} — ${p.Description||''}`;
+      document.getElementById('pointDropdown').hidden = true;
+      document.getElementById('pvPointId').textContent = p.PointID;
+      document.getElementById('pvLocation').textContent = p.LocationName || '—';
+      document.getElementById('pvEquipment').textContent = p.EquipmentName || '—';
+      document.getElementById('pvCriticality').textContent = p.Criticality;
+      document.getElementById('pvCriticality').className = `badge badge--crit-${(p.Criticality||'').toLowerCase()}`;
+      document.getElementById('pvLubricant').textContent = p.RecommendedLubricant || '—';
+      document.getElementById('pvInterval').textContent = p.ChangeIntervalDays ? `${p.ChangeIntervalDays} days` : '—';
+      document.getElementById('pointPreview').hidden = false;
+      document.getElementById('oilRequiredNotice').hidden = !p.OilChangeRequired;
+      if (p.RecommendedLubricant) document.getElementById('lubricantUsed').value = p.RecommendedLubricant;
+    }
+
+    async function handleSubmit() {
+      const pointId    = document.getElementById('selectedPointId').value;
+      const changeDate = document.getElementById('changeDate').value;
+      const lubricant  = document.getElementById('lubricantUsed').value.trim();
+
+      if (!pointId)   { Toast.show(I18n.t('history.form.pointRequired','Please select a lubrication point'),'warning'); return; }
+      if (!changeDate){ Toast.show(I18n.t('history.form.dateRequired','Please enter a change date'),'warning'); return; }
+      if (!lubricant) { Toast.show(I18n.t('history.form.lubricantRequired','Please enter the lubricant used'),'warning'); return; }
+
+      const payload = {
+        pointId,
+        changeDate,
+        lubricantUsed: lubricant,
+        quantityUsed: parseFloat(document.getElementById('quantityUsed').value) || null,
+        changeMethod: document.getElementById('changeMethod').value || null,
+        equipmentCondition: document.getElementById('equipmentCondition').value || null,
+        notes: document.getElementById('submitNotes').value.trim() || null,
+      };
+
+      const btn = document.getElementById('confirmSubmit');
+      btn.disabled = true;
+      btn.textContent = I18n.t('common.submitting','Submitting…');
+
+      const res = await API.submitOilChange(payload);
+      btn.disabled = false;
+      btn.textContent = I18n.t('history.form.submitBtn','Submit Oil Change');
+
+      if (res.success) {
+        const historyId = res.data?.HistoryID;
+
+        // Phase 7: Upload queued photos via files.upload_photo endpoint
+        if (historyId) {
+          const container = document.getElementById('photo-upload-container');
+          const files = container?._getFiles?.() || [];
+          if (files.length > 0) {
+            Toast.show(I18n.t('history.uploadingPhotos','Uploading photos…'), 'info', 8000);
+            for (const { file } of files) {
+              try {
+                const reader = new FileReader();
+                const b64 = await new Promise((res, rej) => {
+                  reader.onload = () => res(reader.result.split(',')[1]);
+                  reader.onerror = rej;
+                  reader.readAsDataURL(file);
+                });
+                await API.post('files.upload_photo', {
+                  historyId,
+                  fileName: file.name,
+                  mimeType: file.type,
+                  base64Data: b64,
+                });
+              } catch (photoErr) {
+                Toast.show(I18n.t('history.photoError','Photo upload failed'), 'warning');
+              }
+            }
+          }
+        }
+
+        Toast.show(I18n.t('history.submitSuccess','Oil change submitted successfully'),'success');
+        Modal.close('submitModal');
+        document.getElementById('submitForm').reset();
+        document.getElementById('pointPreview').hidden = true;
+        document.getElementById('selectedPointId').value = '';
+        document.getElementById('oilRequiredNotice').hidden = true;
+        loadHistory();
+        updateOfflineBanner();
+      } else {
+        Toast.show(res.error || I18n.t('common.submitFailed','Submission failed'),'error');
+      }
+    }
+
+    // ── Filter Setup ──────────────────────────────────────
+    function setupFilters() {
+      const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
+      document.getElementById('searchInput').addEventListener('input', debounce(e => { state.filters.search = e.target.value; applyFilters(); }, 350));
+      document.getElementById('statusFilter').addEventListener('change', e => { state.filters.status = e.target.value; applyFilters(); });
+      document.getElementById('criticalityFilter').addEventListener('change', e => { state.filters.criticality = e.target.value; applyFilters(); });
+      document.getElementById('dateFrom').addEventListener('change', e => { state.filters.dateFrom = e.target.value; applyFilters(); });
+      document.getElementById('dateTo').addEventListener('change', e => { state.filters.dateTo = e.target.value; applyFilters(); });
+      document.getElementById('sortSelect').addEventListener('change', e => { state.sort = e.target.value; applyFilters(); });
+      document.getElementById('btnResetFilters').addEventListener('click', resetFilters);
+
+      document.querySelectorAll('#quickChips .chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+          document.querySelectorAll('#quickChips .chip').forEach(c => c.classList.remove('chip--active'));
+          chip.classList.add('chip--active');
+          state.filters.chip = chip.dataset.filter;
+          applyFilters();
+        });
+      });
+    }
+
+    function resetFilters() {
+      state.filters = { search: '', status: '', criticality: '', dateFrom: '', dateTo: '', chip: 'all' };
+      document.getElementById('searchInput').value = '';
+      document.getElementById('statusFilter').value = '';
+      document.getElementById('criticalityFilter').value = '';
+      document.getElementById('dateFrom').value = '';
+      document.getElementById('dateTo').value = '';
+      document.querySelectorAll('#quickChips .chip').forEach(c => c.classList.remove('chip--active'));
+      document.querySelector('#quickChips .chip[data-filter="all"]').classList.add('chip--active');
+      applyFilters();
+    }
+
+    // ── Modal Setup ───────────────────────────────────────
+    function setupModals() {
+      document.getElementById('btnSubmitOilChange').addEventListener('click', () => {
+        if (!Auth.can('history.create')) {
+          Toast.show(I18n.t('common.noPermission','You do not have permission for this action'),'error');
+          return;
+        }
+        Modal.open('submitModal');
+        // Phase 7: PhotoViewer builds picker UI
+        if (typeof PhotoViewer !== 'undefined' && PhotoViewer.buildPickerUI) {
+          PhotoViewer.buildPickerUI('photo-upload-container');
+        }
+      });
+    }
+
+  })();
+  </script>
+</body>
+</html>

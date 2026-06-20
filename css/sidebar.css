@@ -1,0 +1,346 @@
+/* ============================================================
+   ACC LMS — Sidebar Navigation Styles
+   ============================================================ */
+
+/* ── Sidebar Header / Brand ────────────────────────────────── */
+
+.sidebar-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: var(--space-4) var(--space-4);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  flex-shrink: 0;
+  min-height: var(--header-height);
+  overflow: hidden;
+}
+
+/* Collapsed sidebar still wants the original compact horizontal row
+   (icon-only rail) since the brand text is hidden there anyway. */
+.sidebar.collapsed .sidebar-brand {
+  flex-direction: row;
+  align-items: center;
+}
+
+.sidebar-logo {
+  /* FIX: logo was a fixed 48x48px square, which both squashed the wide
+     rectangular ACC logo (forcing a non-native aspect ratio via the
+     object-fit:contain letterboxing) and made it too small to read.
+     Sizing by height with width:auto preserves the logo's real aspect
+     ratio at any size — never distorts it. */
+  height: 76px;
+  width: auto;
+  max-width: 188px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+/* Collapsed sidebar (desktop) is only --sidebar-collapsed (64px) wide,
+   with var(--space-4)=16px padding on each side of .sidebar-brand —
+   leaving ~32px of usable width. Constrain both dimensions so the logo
+   is guaranteed to fit (object-fit:contain still prevents distortion)
+   instead of being clipped by .sidebar's overflow:hidden. */
+.sidebar.collapsed .sidebar-logo {
+  height: 32px;
+  width: 32px;
+  max-width: 32px;
+}
+
+.sidebar-brand-text {
+  overflow: hidden;
+  transition: opacity var(--transition-base), width var(--transition-layout);
+}
+
+.sidebar-brand-name {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  line-height: 1.3;
+  letter-spacing: 0.01em;
+}
+
+.sidebar-brand-sub {
+  font-size: var(--text-xs);
+  color: rgba(255,255,255,0.55);
+  white-space: nowrap;
+  margin-top: 1px;
+  font-weight: 400;
+}
+
+.sidebar.collapsed .sidebar-brand-text {
+  opacity: 0;
+  width: 0;
+  pointer-events: none;
+}
+
+/* ── Collapse Toggle ────────────────────────────────────────── */
+
+.sidebar-toggle {
+  position: absolute;
+  top: calc(var(--header-height) / 2);
+  right: -12px;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  background: var(--color-brand-navy);
+  border: 2px solid var(--color-border);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #fff;
+  font-size: 10px;
+  z-index: 10;
+  transition: all var(--transition-base);
+  box-shadow: var(--shadow-md);
+}
+
+.sidebar-toggle:hover {
+  background: var(--color-brand-navy-mid);
+  transform: translateY(-50%) scale(1.1);
+}
+
+[dir="rtl"] .sidebar-toggle {
+  right: auto;
+  left: -12px;
+}
+
+.sidebar.collapsed .sidebar-toggle {
+  transform: translateY(-50%) rotate(180deg);
+}
+[dir="rtl"] .sidebar.collapsed .sidebar-toggle {
+  transform: translateY(-50%) rotate(0deg);
+}
+
+/* ── Sidebar Scroll Area ────────────────────────────────────── */
+
+.sidebar-nav {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--space-3) var(--space-2);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.15) transparent;
+}
+
+.sidebar-nav::-webkit-scrollbar {
+  width: 4px;
+}
+.sidebar-nav::-webkit-scrollbar-track { background: transparent; }
+.sidebar-nav::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 99px; }
+
+/* ── Nav Sections ───────────────────────────────────────────── */
+
+.nav-section {
+  margin-bottom: var(--space-2);
+}
+
+.nav-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(255,255,255,0.35);
+  padding: var(--space-3) var(--space-3) var(--space-1);
+  white-space: nowrap;
+  overflow: hidden;
+  transition: opacity var(--transition-base);
+}
+
+.sidebar.collapsed .nav-section-label {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* ── Nav Items ──────────────────────────────────────────────── */
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-3);
+  border-radius: var(--radius-md);
+  color: var(--color-text-sidebar);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  position: relative;
+  text-decoration: none;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  white-space: nowrap;
+  margin-bottom: 2px;
+  overflow: hidden;
+}
+
+.nav-item:hover {
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+}
+
+.nav-item.active {
+  background: var(--color-sidebar-active);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+}
+
+.nav-item.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 20%;
+  bottom: 20%;
+  width: 3px;
+  background: var(--color-brand-green-lt);
+  border-radius: 0 3px 3px 0;
+}
+
+[dir="rtl"] .nav-item.active::before {
+  left: auto;
+  right: 0;
+  border-radius: 3px 0 0 3px;
+}
+
+.nav-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+
+.nav-label {
+  flex: 1;
+  transition: opacity var(--transition-base), width var(--transition-layout);
+  overflow: hidden;
+}
+
+.sidebar.collapsed .nav-label {
+  opacity: 0;
+  width: 0;
+  pointer-events: none;
+}
+
+.nav-badge {
+  background: var(--color-rejected);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: var(--radius-full);
+  min-width: 18px;
+  text-align: center;
+  flex-shrink: 0;
+  transition: opacity var(--transition-base);
+}
+
+.sidebar.collapsed .nav-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  min-width: unset;
+  font-size: 0;
+  border-radius: 50%;
+}
+
+/* Tooltip for collapsed state */
+.sidebar.collapsed .nav-item {
+  position: relative;
+}
+
+/* ── Sidebar Footer ─────────────────────────────────────────── */
+
+.sidebar-footer {
+  padding: var(--space-3) var(--space-2);
+  border-top: 1px solid rgba(255,255,255,0.08);
+  flex-shrink: 0;
+}
+
+.sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background var(--transition-base);
+  overflow: hidden;
+}
+
+.sidebar-user:hover {
+  background: rgba(255,255,255,0.08);
+}
+
+.user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--color-brand-navy-mid);
+  border: 2px solid rgba(255,255,255,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+  text-transform: uppercase;
+}
+
+.user-info {
+  overflow: hidden;
+  transition: opacity var(--transition-base);
+  flex: 1;
+}
+
+.sidebar.collapsed .user-info {
+  opacity: 0;
+  width: 0;
+  pointer-events: none;
+}
+
+.user-name {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.user-role {
+  font-size: var(--text-xs);
+  color: rgba(255,255,255,0.55);
+  white-space: nowrap;
+}
+
+.user-logout-btn {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  color: rgba(255,255,255,0.5);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  flex-shrink: 0;
+}
+
+.user-logout-btn:hover {
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+}
+
+.sidebar.collapsed .user-logout-btn {
+  display: none;
+}

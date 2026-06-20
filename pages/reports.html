@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title data-i18n="reports.title">Reports — ACC LMS</title>
+  <link rel="icon" href="../assets/favicon.ico" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Cairo:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/tokens.css" />
+  <link rel="stylesheet" href="../css/base.css" />
+  <link rel="stylesheet" href="../css/sidebar.css" />
+  <link rel="stylesheet" href="../css/components.css" />
+  <link rel="manifest" href="../manifest.json">
+  <link rel="stylesheet" href="../css/print.css" media="print">
+  <meta name="theme-color" content="#1E2B5E">
+  <style>
+    /* Reports-specific styles */
+    .report-tabs { display: flex; gap: 2px; background: var(--color-surface-overlay); padding: 4px; border-radius: var(--radius-lg); width: fit-content; margin-bottom: var(--space-5); flex-wrap: wrap; }
+    .report-tab { padding: 8px 18px; border-radius: var(--radius-md); font-size: var(--text-sm); font-weight: 500; cursor: pointer; border: none; background: transparent; color: var(--color-text-secondary); transition: all 0.15s; white-space: nowrap; }
+    .report-tab.active { background: var(--color-surface); color: var(--color-brand-navy); font-weight: 600; box-shadow: var(--shadow-sm); }
+    .report-panel { display: none; }
+    .report-panel.active { display: block; }
+
+    /* KPI Cards */
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: var(--space-4); margin-bottom: var(--space-5); }
+    .kpi-card { background: var(--color-surface); border-radius: var(--radius-lg); border: 1px solid var(--color-border); padding: var(--space-5); position: relative; overflow: hidden; }
+    .kpi-card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background: var(--kpi-accent, var(--color-brand-navy)); }
+    .kpi-card--green  { --kpi-accent: var(--color-brand-green); }
+    .kpi-card--amber  { --kpi-accent: var(--color-pending); }
+    .kpi-card--red    { --kpi-accent: var(--color-critical); }
+    .kpi-card--blue   { --kpi-accent: var(--color-info); }
+    .kpi-card--purple { --kpi-accent: var(--color-recalled); }
+    .kpi-value { font-size: 2rem; font-weight: 700; color: var(--color-brand-navy); line-height: 1; margin-bottom: 4px; }
+    .kpi-label { font-size: var(--text-xs); color: var(--color-text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
+    .kpi-sub { font-size: var(--text-xs); color: var(--color-text-secondary); margin-top: 6px; }
+    .kpi-trend { font-size: var(--text-xs); font-weight: 600; margin-top: 4px; }
+    .kpi-trend--up { color: var(--color-approved); }
+    .kpi-trend--down { color: var(--color-critical); }
+
+    /* Compliance Bar */
+    .compliance-bar-wrap { margin: var(--space-3) 0; }
+    .compliance-bar-label { display: flex; justify-content: space-between; font-size: var(--text-sm); margin-bottom: 6px; }
+    .compliance-bar { height: 10px; background: var(--color-border); border-radius: var(--radius-full); overflow: hidden; }
+    .compliance-bar-fill { height: 100%; border-radius: var(--radius-full); background: var(--color-brand-green); transition: width 0.6s ease; }
+    .compliance-bar-fill--warning { background: var(--color-pending); }
+    .compliance-bar-fill--danger  { background: var(--color-critical); }
+
+    /* Overdue Table */
+    .overdue-section { margin-bottom: var(--space-5); }
+    .overdue-section-title { font-size: var(--text-base); font-weight: 600; color: var(--color-text-primary); margin-bottom: var(--space-3); display: flex; align-items: center; gap: var(--space-2); }
+    .overdue-count-badge { background: var(--color-critical-bg); color: var(--color-critical); border-radius: var(--radius-full); padding: 2px 10px; font-size: var(--text-xs); font-weight: 700; }
+
+    /* Export Controls */
+    .export-controls { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
+    .report-date-range { display: flex; align-items: center; gap: var(--space-2); }
+
+    /* Chart placeholder */
+    .chart-area { background: var(--color-surface-overlay); border-radius: var(--radius-lg); border: 1px dashed var(--color-border); min-height: 240px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-3); color: var(--color-text-muted); margin-bottom: var(--space-5); }
+    .chart-bar-group { display: flex; align-items: flex-end; gap: 6px; height: 180px; padding: 0 var(--space-4); }
+    .chart-bar-col { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; }
+    .chart-bar { width: 100%; background: var(--color-brand-navy); border-radius: var(--radius-sm) var(--radius-sm) 0 0; transition: height 0.5s ease; opacity: 0.85; cursor: pointer; min-height: 4px; }
+    .chart-bar:hover { opacity: 1; }
+    .chart-bar--green { background: var(--color-brand-green); }
+    .chart-bar--amber { background: var(--color-pending); }
+    .chart-bar-label { font-size: 10px; color: var(--color-text-muted); text-align: center; }
+    .chart-bar-val { font-size: 10px; font-weight: 600; color: var(--color-text-secondary); }
+    .chart-legend { display: flex; gap: var(--space-4); font-size: var(--text-xs); color: var(--color-text-secondary); }
+    .chart-legend-item { display: flex; align-items: center; gap: 6px; }
+    .chart-legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+
+    /* Top performers table */
+    .rank-table { width: 100%; border-collapse: collapse; }
+    .rank-table td, .rank-table th { padding: 10px 12px; border-bottom: 1px solid var(--color-border); font-size: var(--text-sm); }
+    .rank-num { font-weight: 700; color: var(--color-text-muted); width: 32px; }
+    .progress-mini { height: 6px; background: var(--color-border); border-radius: var(--radius-full); overflow: hidden; width: 80px; display: inline-block; vertical-align: middle; margin-left: 8px; }
+    .progress-mini-fill { height: 100%; background: var(--color-brand-green); border-radius: var(--radius-full); }
+  </style>
+</head>
+<body>
+  <div class="app-layout" id="appLayout">
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="main-wrapper">
+      <header class="app-header" id="appHeader"></header>
+      <main class="main-content">
+
+        <!-- Page Header -->
+        <div class="page-header">
+          <div class="page-header-left">
+            <h1 class="page-title" data-i18n="reports.pageTitle">Reports & Analytics</h1>
+            <p class="page-subtitle" data-i18n="reports.pageSubtitle">KPI dashboard, compliance tracking, and data exports</p>
+          </div>
+          <div class="page-header-actions">
+            <div class="report-date-range">
+              <label class="filter-label">Period:</label>
+              <select id="periodSelect" class="form-select">
+                <option value="30">Last 30 days</option>
+                <option value="90" selected>Last 90 days</option>
+                <option value="180">Last 6 months</option>
+                <option value="365">Last year</option>
+                <option value="custom">Custom range</option>
+              </select>
+              <input type="date" id="customFrom" class="form-input" style="display:none" />
+              <input type="date" id="customTo"   class="form-input" style="display:none" />
+            </div>
+            <button class="btn btn-secondary" id="btnRefresh">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+              <span data-i18n="common.refresh">Refresh</span>
+            </button>
+            <button class="btn btn-ghost" onclick="Print.section('activeReportPanel','Reports — ACC LMS')" title="Print current report">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+              <span class="hidden-mobile">Print</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Report Tabs -->
+        <div class="report-tabs" role="tablist">
+          <button class="report-tab active" data-tab="kpi" role="tab" data-i18n="reports.tab.kpi">KPI Overview</button>
+          <button class="report-tab" data-tab="compliance" role="tab" data-i18n="reports.tab.compliance">Compliance</button>
+          <button class="report-tab" data-tab="overdue" role="tab" data-i18n="reports.tab.overdue">Overdue</button>
+          <button class="report-tab" data-tab="trends" role="tab" data-i18n="reports.tab.trends">Trends</button>
+          <button class="report-tab" data-tab="export" role="tab" data-i18n="reports.tab.export">Export</button>
+        </div>
+
+        <!-- Report Panels (printable wrapper) -->
+        <div id="activeReportPanel">
+        <div class="report-panel active" id="panel-kpi">
+          <!-- Loading state -->
+          <div id="kpiLoading" class="table-loading" style="padding: var(--space-8)">
+            <div class="spinner"></div><span>Loading KPIs…</span>
+          </div>
+
+          <div id="kpiContent" hidden>
+            <!-- Primary KPIs -->
+            <div class="kpi-grid" id="kpiGrid">
+              <!-- Injected by JS -->
+            </div>
+
+            <!-- Monthly Activity Chart -->
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title" data-i18n="reports.chart.monthlyActivity">Monthly Activity</h3>
+                <div class="chart-legend">
+                  <span class="chart-legend-item"><span class="chart-legend-dot" style="background:var(--color-brand-navy)"></span>Oil Changes</span>
+                  <span class="chart-legend-item"><span class="chart-legend-dot" style="background:var(--color-brand-green)"></span>Approved</span>
+                  <span class="chart-legend-item"><span class="chart-legend-dot" style="background:var(--color-pending)"></span>Pending</span>
+                </div>
+              </div>
+              <div class="chart-bar-group" id="monthlyChart"></div>
+            </div>
+
+            <!-- Two-column: Top Locations & Top Technicians -->
+            <div class="grid grid--2" style="margin-top: var(--space-4)">
+              <div class="card">
+                <div class="card-header"><h3 class="card-title">Top Locations by Compliance</h3></div>
+                <table class="rank-table" id="locationTable">
+                  <tr><td colspan="3" style="text-align:center;color:var(--color-text-muted)">Loading…</td></tr>
+                </table>
+              </div>
+              <div class="card">
+                <div class="card-header"><h3 class="card-title">Technician Performance</h3></div>
+                <table class="rank-table" id="technicianTable">
+                  <tr><td colspan="3" style="text-align:center;color:var(--color-text-muted)">Loading…</td></tr>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ TAB: Compliance ═══ -->
+        <div class="report-panel" id="panel-compliance">
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Compliance by Area</h3>
+              <span id="overallCompliance" class="badge badge--approved">—%</span>
+            </div>
+            <p class="text-muted" style="margin-bottom:var(--space-4)">
+              Percentage of lubrication points that have been serviced within their scheduled intervals.
+            </p>
+            <div id="complianceBars">
+              <div class="table-loading"><div class="spinner"></div><span>Loading compliance data…</span></div>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:var(--space-4)">
+            <div class="card-header"><h3 class="card-title">Compliance by Criticality</h3></div>
+            <div id="criticalityCompliance">
+              <div class="table-loading"><div class="spinner"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ TAB: Overdue ═══ -->
+        <div class="report-panel" id="panel-overdue">
+          <div class="overdue-section">
+            <div class="overdue-section-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-critical)" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              Critical Overdue Points
+              <span class="overdue-count-badge" id="critOverdueCount">—</span>
+            </div>
+            <div class="card card--flush">
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead><tr>
+                    <th>Point ID</th><th>Location</th><th>Equipment</th>
+                    <th>Last Service</th><th>Days Overdue</th><th>Interval</th><th>Action</th>
+                  </tr></thead>
+                  <tbody id="overdueTableCritical">
+                    <tr><td colspan="7"><div class="table-loading"><div class="spinner"></div></div></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <div class="overdue-section">
+            <div class="overdue-section-title">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-high)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              High Priority Overdue
+              <span class="overdue-count-badge" id="highOverdueCount" style="background:var(--color-high-bg);color:var(--color-high)">—</span>
+            </div>
+            <div class="card card--flush">
+              <div class="table-wrap">
+                <table class="data-table">
+                  <thead><tr>
+                    <th>Point ID</th><th>Location</th><th>Equipment</th>
+                    <th>Last Service</th><th>Days Overdue</th><th>Interval</th><th>Action</th>
+                  </tr></thead>
+                  <tbody id="overdueTableHigh">
+                    <tr><td colspan="7"><div class="table-loading"><div class="spinner"></div></div></td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ TAB: Trends ═══ -->
+        <div class="report-panel" id="panel-trends">
+          <div class="card" style="margin-bottom:var(--space-4)">
+            <div class="card-header"><h3 class="card-title">Approval Rate Trend</h3></div>
+            <div class="chart-bar-group" id="approvalTrendChart" style="height:200px"></div>
+          </div>
+          <div class="grid grid--2">
+            <div class="card">
+              <div class="card-header"><h3 class="card-title">Oil Analysis Recommendations</h3></div>
+              <div id="recDistribution" style="padding:var(--space-4)">
+                <div class="table-loading"><div class="spinner"></div></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-header"><h3 class="card-title">Overdue Escalation Summary</h3></div>
+              <div id="escalationSummary" style="padding:var(--space-4)">
+                <div class="table-loading"><div class="spinner"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══ TAB: Export ═══ -->
+        <div class="report-panel" id="panel-export">
+          <div class="grid grid--2">
+
+            <div class="card">
+              <div class="card-header"><h3 class="card-title" data-i18n="reports.export.history">Oil Change History Export</h3></div>
+              <p class="text-muted" style="margin-bottom:var(--space-4)">Export complete change history with status, technician, and approval data.</p>
+              <div class="form-group">
+                <label class="form-label">Date Range</label>
+                <div style="display:flex;gap:var(--space-2)">
+                  <input type="date" id="exportHistFrom" class="form-input" />
+                  <span style="align-self:center;color:var(--color-text-muted)">–</span>
+                  <input type="date" id="exportHistTo" class="form-input" />
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Status Filter</label>
+                <select id="exportHistStatus" class="form-select">
+                  <option value="">All Statuses</option>
+                  <option value="APPROVED">Approved Only</option>
+                  <option value="PENDING">Pending Only</option>
+                  <option value="REJECTED">Rejected Only</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Format</label>
+                <div class="radio-group">
+                  <label class="radio-label"><input type="radio" name="exportHistFmt" value="csv" checked /> CSV</label>
+                  <label class="radio-label"><input type="radio" name="exportHistFmt" value="json" /> JSON</label>
+                </div>
+              </div>
+              <button class="btn btn-primary" id="btnExportHistory">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Export History
+              </button>
+            </div>
+
+            <div class="card">
+              <div class="card-header"><h3 class="card-title" data-i18n="reports.export.compliance">Compliance Report Export</h3></div>
+              <p class="text-muted" style="margin-bottom:var(--space-4)">Export compliance status for all lubrication points grouped by area.</p>
+              <div class="form-group">
+                <label class="form-label">Area Filter</label>
+                <select id="exportCompArea" class="form-select">
+                  <option value="">All Areas</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Include</label>
+                <div style="display:flex;flex-direction:column;gap:6px">
+                  <label class="checkbox-label"><input type="checkbox" id="inclOverdue" checked /> Include overdue points</label>
+                  <label class="checkbox-label"><input type="checkbox" id="inclOnTime" checked /> Include on-time points</label>
+                  <label class="checkbox-label"><input type="checkbox" id="inclInactive" /> Include inactive points</label>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Format</label>
+                <div class="radio-group">
+                  <label class="radio-label"><input type="radio" name="exportCompFmt" value="csv" checked /> CSV</label>
+                  <label class="radio-label"><input type="radio" name="exportCompFmt" value="json" /> JSON</label>
+                </div>
+              </div>
+              <button class="btn btn-primary" id="btnExportCompliance">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Export Compliance
+              </button>
+            </div>
+
+            <div class="card">
+              <div class="card-header"><h3 class="card-title">Overdue Report Export</h3></div>
+              <p class="text-muted" style="margin-bottom:var(--space-4)">Export all overdue lubrication points with escalation levels.</p>
+              <div class="form-group">
+                <label class="form-label">Criticality</label>
+                <select id="exportOverdueCrit" class="form-select">
+                  <option value="">All</option>
+                  <option value="CRITICAL">Critical Only</option>
+                  <option value="HIGH">High Only</option>
+                  <option value="MEDIUM">Medium Only</option>
+                  <option value="LOW">Low Only</option>
+                </select>
+              </div>
+              <button class="btn btn-primary" id="btnExportOverdue">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Export Overdue
+              </button>
+            </div>
+
+            <div class="card">
+              <div class="card-header"><h3 class="card-title">Oil Analysis Export</h3></div>
+              <p class="text-muted" style="margin-bottom:var(--space-4)">Export all oil analysis samples with lab results and recommendations.</p>
+              <div class="form-group">
+                <label class="form-label">Date Range</label>
+                <div style="display:flex;gap:var(--space-2)">
+                  <input type="date" id="exportAnalysisFrom" class="form-input" />
+                  <span style="align-self:center;color:var(--color-text-muted)">–</span>
+                  <input type="date" id="exportAnalysisTo" class="form-input" />
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Recommendation</label>
+                <select id="exportAnalysisRec" class="form-select">
+                  <option value="">All</option>
+                  <option value="URGENT_CHANGE">Urgent Change Only</option>
+                  <option value="CHANGE_OIL">Change Oil Only</option>
+                  <option value="INVESTIGATE">Investigate Only</option>
+                </select>
+              </div>
+              <button class="btn btn-primary" id="btnExportAnalysis">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Export Analysis
+              </button>
+            </div>
+
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+  <div class="search-overlay" id="searchOverlay" hidden></div>
+
+  <script src="../js/core.js"></script>
+  <script src="../js/shell.js"></script>
+  <script>
+  (function() {
+    'use strict';
+    let kpiData = null;
+    let period = 90;
+
+    App.init({ requireAuth: true, requiredPermission: 'reports.kpi' }).then(() => {
+      Shell.init();
+      setupTabs();
+      setupPeriod();
+      loadKPI();
+      I18n._rerender();
+    });
+
+    // ── Tabs ────────────────────────────────────────────────
+    function setupTabs() {
+      document.querySelectorAll('.report-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          document.querySelectorAll('.report-tab').forEach(t => t.classList.remove('active'));
+          document.querySelectorAll('.report-panel').forEach(p => p.classList.remove('active'));
+          tab.classList.add('active');
+          document.getElementById('panel-'+tab.dataset.tab).classList.add('active');
+          // Lazy load panel data
+          if (tab.dataset.tab === 'compliance' && !kpiData?._complianceLoaded) loadCompliance();
+          if (tab.dataset.tab === 'overdue' && !kpiData?._overdueLoaded) loadOverdue();
+          if (tab.dataset.tab === 'trends' && !kpiData?._trendsLoaded) loadTrends();
+        });
+      });
+    }
+
+    function setupPeriod() {
+      document.getElementById('periodSelect').addEventListener('change', e => {
+        const val = e.target.value;
+        const customVis = val === 'custom' ? 'inline-block' : 'none';
+        document.getElementById('customFrom').style.display = customVis;
+        document.getElementById('customTo').style.display = customVis;
+        if (val !== 'custom') { period = parseInt(val); loadKPI(); }
+      });
+      document.getElementById('btnRefresh').addEventListener('click', () => loadKPI());
+    }
+
+    // ── KPI Panel ───────────────────────────────────────────
+    async function loadKPI() {
+      document.getElementById('kpiLoading').hidden = false;
+      document.getElementById('kpiContent').hidden = true;
+
+      const res = await API.getKPI();
+      if (!res.success) { Toast.show(res.error || 'Failed to load KPIs', 'error'); document.getElementById('kpiLoading').hidden = true; return; }
+
+      kpiData = res.data || {};
+      renderKPIs(kpiData);
+      renderMonthlyChart(kpiData.monthly || []);
+      renderLocationTable(kpiData.topLocations || []);
+      renderTechnicianTable(kpiData.technicianPerf || []);
+
+      document.getElementById('kpiLoading').hidden = true;
+      document.getElementById('kpiContent').hidden = false;
+    }
+
+    function renderKPIs(d) {
+      const complianceRate = d.totalPoints > 0 ? Math.round((d.compliantPoints / d.totalPoints) * 100) : 0;
+      const approvalRate   = d.totalSubmitted > 0 ? Math.round((d.totalApproved / d.totalSubmitted) * 100) : 0;
+      const compColor = complianceRate >= 90 ? 'green' : complianceRate >= 70 ? 'amber' : 'red';
+      const appColor  = approvalRate  >= 90 ? 'green' : approvalRate  >= 70 ? 'amber' : 'red';
+
+      document.getElementById('kpiGrid').innerHTML = `
+        <div class="kpi-card kpi-card--${compColor}">
+          <div class="kpi-value">${complianceRate}%</div>
+          <div class="kpi-label">Overall Compliance</div>
+          <div class="kpi-sub">${d.compliantPoints||0} / ${d.totalPoints||0} points</div>
+        </div>
+        <div class="kpi-card kpi-card--blue">
+          <div class="kpi-value">${d.totalSubmitted||0}</div>
+          <div class="kpi-label">Submissions</div>
+          <div class="kpi-sub">Last ${period} days</div>
+        </div>
+        <div class="kpi-card kpi-card--${appColor}">
+          <div class="kpi-value">${approvalRate}%</div>
+          <div class="kpi-label">Approval Rate</div>
+          <div class="kpi-sub">${d.totalApproved||0} approved</div>
+        </div>
+        <div class="kpi-card kpi-card--red">
+          <div class="kpi-value">${d.overdueTotal||0}</div>
+          <div class="kpi-label">Overdue Points</div>
+          <div class="kpi-sub">${d.overdueCritical||0} critical</div>
+        </div>
+        <div class="kpi-card kpi-card--amber">
+          <div class="kpi-value">${d.pendingReview||0}</div>
+          <div class="kpi-label">Pending Review</div>
+          <div class="kpi-sub">Awaiting approval</div>
+        </div>
+        <div class="kpi-card kpi-card--purple">
+          <div class="kpi-value">${d.oilChangeRequired||0}</div>
+          <div class="kpi-label">Oil Change Flags</div>
+          <div class="kpi-sub">From analysis</div>
+        </div>
+      `;
+    }
+
+    function renderMonthlyChart(months) {
+      const container = document.getElementById('monthlyChart');
+      if (!months.length) { container.innerHTML = '<p style="margin:auto;color:var(--color-text-muted)">No data for this period</p>'; return; }
+
+      // Phase 5: Use interactive SVG bar chart from Charts module
+      if (typeof Charts !== 'undefined') {
+        const chartData = months.map(m => ({
+          label: m.month || '',
+          value: m.total || 0,
+          color: 'var(--color-brand-navy-mid)',
+        }));
+        Charts.bar('monthlyChart', chartData, { title: 'Monthly Oil Changes', height: 220 });
+
+        // Add legend below
+        const legend = document.createElement('div');
+        legend.style.cssText = 'display:flex;gap:16px;justify-content:center;padding:8px 0;font-size:12px;';
+        legend.innerHTML = `
+          <div style="display:flex;align-items:center;gap:5px;"><span style="width:12px;height:12px;background:var(--color-brand-navy-mid);border-radius:2px;"></span>Total Changes</div>
+          <div style="display:flex;align-items:center;gap:5px;"><span style="width:12px;height:12px;background:var(--color-brand-green);border-radius:2px;"></span>Approved</div>
+        `;
+        container.appendChild(legend);
+        return;
+      }
+
+      // Fallback: original HTML bars
+      const max = Math.max(...months.map(m => m.total || 0), 1);
+      container.innerHTML = months.map(m => {
+        const h = Math.max(4, Math.round((m.total/max)*160));
+        const ha = Math.max(0, Math.round((m.approved/max)*160));
+        const hp = Math.max(0, Math.round((m.pending/max)*160));
+        return `<div class="chart-bar-col">
+          <div class="chart-bar-val">${m.total||0}</div>
+          <div style="display:flex;align-items:flex-end;gap:2px;height:160px">
+            <div class="chart-bar" style="height:${h}px" title="Total: ${m.total}"></div>
+            <div class="chart-bar chart-bar--green" style="height:${ha}px" title="Approved: ${m.approved}"></div>
+            <div class="chart-bar chart-bar--amber" style="height:${hp}px" title="Pending: ${m.pending}"></div>
+          </div>
+          <div class="chart-bar-label">${m.month||''}</div>
+        </div>`;
+      }).join('');
+    }
+
+    function renderLocationTable(locs) {
+      const t = document.getElementById('locationTable');
+      if (!locs.length) { t.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--color-text-muted);padding:20px">No data</td></tr>'; return; }
+      t.innerHTML = locs.map((l,i) => {
+        const pct = Math.round(l.compliance||0);
+        const col = pct>=90?'var(--color-approved)':pct>=70?'var(--color-pending)':'var(--color-critical)';
+        return `<tr>
+          <td class="rank-num">${i+1}</td>
+          <td><div>${l.name||'—'}</div><div style="font-size:11px;color:var(--color-text-muted)">${l.total||0} points</div></td>
+          <td style="text-align:right"><strong style="color:${col}">${pct}%</strong>
+            <div class="progress-mini"><div class="progress-mini-fill" style="width:${pct}%;background:${col}"></div></div>
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+    function renderTechnicianTable(techs) {
+      const t = document.getElementById('technicianTable');
+      if (!techs.length) { t.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--color-text-muted);padding:20px">No data</td></tr>'; return; }
+      const max = Math.max(...techs.map(x=>x.submitted||0),1);
+      t.innerHTML = techs.map((tech,i) => {
+        const pct = Math.round((tech.submitted/max)*100);
+        return `<tr>
+          <td class="rank-num">${i+1}</td>
+          <td><div>${tech.name||'—'}</div><div style="font-size:11px;color:var(--color-text-muted)">${tech.submitted||0} submissions</div></td>
+          <td style="text-align:right"><strong style="color:var(--color-brand-navy)">${tech.approvalRate||0}%</strong>
+            <div style="font-size:11px;color:var(--color-text-muted)">approval</div>
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+    // ── Compliance Panel ────────────────────────────────────
+    async function loadCompliance() {
+      const res = await API.getKPI();
+      if (!res.success) return;
+      const d = res.data || {};
+      kpiData._complianceLoaded = true;
+
+      const overall = d.totalPoints > 0 ? Math.round((d.compliantPoints/d.totalPoints)*100) : 0;
+      const oBadge = document.getElementById('overallCompliance');
+      oBadge.textContent = `${overall}% Overall`;
+      oBadge.className = `badge badge--${overall>=90?'approved':overall>=70?'pending':'critical'}`;
+
+      const bars = document.getElementById('complianceBars');
+      const byArea = d.byArea || [];
+      bars.innerHTML = byArea.map(area => {
+        const pct = Math.round(area.compliance||0);
+        return `<div class="compliance-bar-wrap">
+          <div class="compliance-bar-label">
+            <span>${area.name} <span style="color:var(--color-text-muted);font-size:12px">(${area.total||0} points)</span></span>
+            <strong>${pct}%</strong>
+          </div>
+          <div class="compliance-bar">
+            <div class="compliance-bar-fill ${pct<70?'compliance-bar-fill--danger':pct<90?'compliance-bar-fill--warning':''}"
+                 style="width:${pct}%"></div>
+          </div>
+        </div>`;
+      }).join('') || '<p style="color:var(--color-text-muted)">No area data available</p>';
+
+      const critEl = document.getElementById('criticalityCompliance');
+      const byCrit = d.byCriticality || {};
+      critEl.innerHTML = ['CRITICAL','HIGH','MEDIUM','LOW'].map(c => {
+        const pct = Math.round(byCrit[c]?.compliance||0);
+        return `<div class="compliance-bar-wrap">
+          <div class="compliance-bar-label">
+            <span><span class="badge badge--crit-${c.toLowerCase()} badge--sm">${c}</span></span>
+            <strong>${pct}%</strong>
+          </div>
+          <div class="compliance-bar">
+            <div class="compliance-bar-fill ${pct<70?'compliance-bar-fill--danger':pct<90?'compliance-bar-fill--warning':''}"
+                 style="width:${pct}%"></div>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    // ── Overdue Panel ───────────────────────────────────────
+    async function loadOverdue() {
+      const res = await API.getOverdueReport({});
+      if (!res.success) return;
+      kpiData._overdueLoaded = true;
+      const all = res.data || [];
+      const critical = all.filter(p => p.Criticality === 'CRITICAL');
+      const high     = all.filter(p => p.Criticality === 'HIGH');
+
+      document.getElementById('critOverdueCount').textContent = critical.length;
+      document.getElementById('highOverdueCount').textContent = high.length;
+
+      renderOverdueTable('overdueTableCritical', critical);
+      renderOverdueTable('overdueTableHigh', high);
+    }
+
+    function renderOverdueTable(id, rows) {
+      const tbody = document.getElementById(id);
+      if (!rows.length) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--color-text-muted)">No overdue points in this category</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = rows.map(r => `<tr>
+        <td><code class="mono">${r.PointID||'—'}</code></td>
+        <td>${r.LocationName||'—'}</td>
+        <td>${r.EquipmentName||'—'}</td>
+        <td>${I18n.formatDate(r.LastServiceDate)||'Never'}</td>
+        <td><strong style="color:var(--color-critical)">${r.DaysOverdue||0} days</strong></td>
+        <td>${r.ChangeIntervalDays||'—'} days</td>
+        <td><a href="history.html" class="btn btn-ghost btn-xs">Submit</a></td>
+      </tr>`).join('');
+    }
+
+    // ── Trends Panel ────────────────────────────────────────
+    async function loadTrends() {
+      kpiData._trendsLoaded = true;
+      // Approval trend (reuse KPI data)
+      const kRes = await API.getKPI();
+      if (!kRes.success) return;
+      const d = kRes.data || {};
+
+      const trendChart = document.getElementById('approvalTrendChart');
+      const monthly = d.monthly || [];
+      const maxR = Math.max(...monthly.map(m => m.total||0), 1);
+      trendChart.innerHTML = monthly.map(m => {
+        const rate = m.total > 0 ? Math.round((m.approved/m.total)*100) : 0;
+        const h = Math.max(4, Math.round((rate/100)*180));
+        const col = rate>=90?'var(--color-brand-green)':rate>=70?'var(--color-pending)':'var(--color-critical)';
+        return `<div class="chart-bar-col">
+          <div class="chart-bar-val" style="color:${col}">${rate}%</div>
+          <div style="display:flex;align-items:flex-end;height:180px">
+            <div class="chart-bar" style="height:${h}px;background:${col}" title="${rate}% approval"></div>
+          </div>
+          <div class="chart-bar-label">${m.month||''}</div>
+        </div>`;
+      }).join('');
+
+      // Recommendation distribution
+      const aRes = await API.getAnalysis({});
+      const recEl = document.getElementById('recDistribution');
+      if (aRes.success && aRes.data?.length) {
+        const recs = aRes.data.reduce((acc,r) => { acc[r.Recommendation]=(acc[r.Recommendation]||0)+1; return acc; }, {});
+        const total = aRes.data.length;
+        const labels = { CONTINUE:'Continue', CHANGE_OIL:'Change Oil', URGENT_CHANGE:'Urgent Change', RETEST:'Retest', INVESTIGATE:'Investigate' };
+        const colors = { CONTINUE:'var(--color-approved)', CHANGE_OIL:'var(--color-high)', URGENT_CHANGE:'var(--color-critical)', RETEST:'var(--color-info)', INVESTIGATE:'var(--color-recalled)' };
+        recEl.innerHTML = Object.entries(labels).map(([k,label]) => {
+          const count = recs[k]||0;
+          const pct = total > 0 ? Math.round((count/total)*100) : 0;
+          return `<div class="compliance-bar-wrap">
+            <div class="compliance-bar-label"><span style="color:${colors[k]};font-weight:600">${label}</span><strong>${count} (${pct}%)</strong></div>
+            <div class="compliance-bar"><div class="compliance-bar-fill" style="width:${pct}%;background:${colors[k]}"></div></div>
+          </div>`;
+        }).join('');
+      }
+
+      // Escalation summary
+      const escEl = document.getElementById('escalationSummary');
+      escEl.innerHTML = `<div class="kpi-grid" style="grid-template-columns:1fr 1fr">
+        <div class="kpi-card kpi-card--red"><div class="kpi-value">${d.overdueCritical||0}</div><div class="kpi-label">Admin Escalations</div></div>
+        <div class="kpi-card kpi-card--amber"><div class="kpi-value">${d.overdueTotal||0}</div><div class="kpi-label">Total Overdue</div></div>
+      </div>`;
+    }
+
+    // ── Export ──────────────────────────────────────────────
+    function setupExportHandlers() {
+      document.getElementById('btnExportHistory').addEventListener('click', async () => {
+        const params = {
+          dateFrom: document.getElementById('exportHistFrom').value || undefined,
+          dateTo:   document.getElementById('exportHistTo').value   || undefined,
+          status:   document.getElementById('exportHistStatus').value || undefined,
+          format:   document.querySelector('input[name="exportHistFmt"]:checked').value,
+        };
+        exportData('history', params);
+      });
+
+      document.getElementById('btnExportCompliance').addEventListener('click', () => {
+        exportData('compliance', { format: document.querySelector('input[name="exportCompFmt"]:checked').value });
+      });
+
+      document.getElementById('btnExportOverdue').addEventListener('click', () => {
+        exportData('overdue', { criticality: document.getElementById('exportOverdueCrit').value || undefined });
+      });
+
+      document.getElementById('btnExportAnalysis').addEventListener('click', () => {
+        exportData('analysis', {
+          dateFrom: document.getElementById('exportAnalysisFrom').value || undefined,
+          dateTo:   document.getElementById('exportAnalysisTo').value   || undefined,
+          recommendation: document.getElementById('exportAnalysisRec').value || undefined,
+        });
+      });
+    }
+
+    async function exportData(type, params) {
+      Toast.show('Preparing export…', 'info');
+      let res;
+      switch(type) {
+        case 'history':    res = await API.getHistory(params); break;
+        case 'compliance': res = await API.getKPI(); break;
+        case 'overdue':    res = await API.getOverdueReport(params); break;
+        case 'analysis':   res = await API.getAnalysis(params); break;
+        default: return;
+      }
+      if (!res.success) { Toast.show(res.error || 'Export failed', 'error'); return; }
+      const data = res.data || (res.data ? [res.data] : []);
+      if (!Array.isArray(data) || !data.length) { Toast.show('No data to export', 'warning'); return; }
+
+      const fmt = params.format || 'csv';
+      let content, mime, filename;
+      if (fmt === 'json') {
+        content = JSON.stringify(data, null, 2);
+        mime = 'application/json';
+        filename = `acc-lms-${type}-${new Date().toISOString().split('T')[0]}.json`;
+      } else {
+        // CSV
+        const keys = Object.keys(data[0]);
+        const rows = [keys.join(','), ...data.map(row => keys.map(k => JSON.stringify(row[k]??'')).join(','))];
+        content = rows.join('\n');
+        mime = 'text/csv';
+        filename = `acc-lms-${type}-${new Date().toISOString().split('T')[0]}.csv`;
+      }
+      const blob = new Blob([content], { type: mime });
+      const url  = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename; a.click();
+      URL.revokeObjectURL(url);
+      Toast.show(`Exported ${data.length} records`, 'success');
+    }
+
+    // Init export handlers after shell builds
+    setTimeout(setupExportHandlers, 100);
+
+  })();
+  </script>
+</body>
+</html>

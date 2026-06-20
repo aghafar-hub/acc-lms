@@ -1,0 +1,194 @@
+/* ============================================================
+   ACC LMS — Print Stylesheet
+   Arabian Cement Company Lubrication Management System
+   Phase 5 — Print Support
+   ============================================================ */
+
+@media print {
+
+  /* ── Reset layout for print ── */
+  .sidebar,
+  .app-header,
+  .filter-bar,
+  .filter-row,
+  .page-header-actions,
+  .btn,
+  .tab-nav,
+  .tab-btn,
+  .report-tabs,
+  .report-tab,
+  .pagination,
+  .toast-container,
+  .modal-overlay,
+  .search-overlay,
+  #global-search-btn,
+  #sidebar-toggle,
+  #mobile-menu-btn {
+    display: none !important;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: #fff !important;
+    color: #000 !important;
+    font-family: Arial, Helvetica, sans-serif !important;
+    font-size: 11pt;
+  }
+
+  .app-shell {
+    display: block !important;
+  }
+
+  .main-content {
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .page-content {
+    padding: 0 !important;
+    max-width: 100% !important;
+  }
+
+  /* ── Print header ── */
+  body::before {
+    content: '';
+    display: block;
+    height: 60px;
+    background: #1E2B5E;
+    margin-bottom: 16px;
+  }
+
+  /* ── Page breaks ── */
+  .card {
+    break-inside: avoid;
+    box-shadow: none !important;
+    border: 1px solid #ccc !important;
+    margin-bottom: 16px;
+  }
+
+  .card-header {
+    background: #f5f5f5 !important;
+  }
+
+  /* ── Tables ── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 9pt;
+  }
+
+  th {
+    background: #1E2B5E !important;
+    color: #fff !important;
+    padding: 6px 8px;
+    text-align: left;
+    font-size: 9pt;
+  }
+
+  td {
+    padding: 5px 8px;
+    border-bottom: 1px solid #e0e0e0;
+    font-size: 9pt;
+  }
+
+  tr:nth-child(even) td {
+    background: #f9f9f9;
+  }
+
+  /* ── Badges in print ── */
+  .badge {
+    border: 1px solid #999;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 8pt;
+    font-weight: 700;
+  }
+
+  .badge-approved  { background: #d1fae5 !important; color: #065f46 !important; }
+  .badge-pending   { background: #fef3c7 !important; color: #92400e !important; }
+  .badge-rejected  { background: #fee2e2 !important; color: #991b1b !important; }
+  .badge-critical  { background: #fee2e2 !important; color: #991b1b !important; }
+  .badge-high      { background: #fef3c7 !important; color: #92400e !important; }
+  .badge-medium    { background: #e0f2fe !important; color: #075985 !important; }
+  .badge-low       { background: #d1fae5 !important; color: #065f46 !important; }
+
+  /* ── KPI cards ── */
+  .stat-card, .kpi-card {
+    break-inside: avoid;
+    border: 1px solid #ccc !important;
+    box-shadow: none !important;
+  }
+
+  .stat-value, .kpi-value {
+    color: #1E2B5E !important;
+  }
+
+  /* ── SVG charts — preserve in print ── */
+  svg {
+    max-width: 100%;
+    height: auto;
+  }
+
+  /* ── Page numbering ── */
+  @page {
+    margin: 1.5cm;
+    size: A4;
+  }
+
+  @page :first {
+    margin-top: 1cm;
+  }
+
+  /* ── Print watermark / footer ── */
+  body::after {
+    content: 'Arabian Cement Company — Lubrication Management System — Confidential';
+    display: block;
+    position: fixed;
+    bottom: 8px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 8pt;
+    color: #999;
+    border-top: 1px solid #e0e0e0;
+    padding-top: 4px;
+  }
+
+  /* ── RTL print support ── */
+  [dir="rtl"] th,
+  [dir="rtl"] td {
+    text-align: right;
+  }
+
+  [dir="rtl"] .badge {
+    direction: rtl;
+  }
+
+  /* ── Hide interactive elements ── */
+  button:not(.print-visible),
+  input:not(.print-visible),
+  select:not(.print-visible) {
+    display: none !important;
+  }
+
+  /* ── Show print-only elements ── */
+  .print-only {
+    display: block !important;
+  }
+
+  .screen-only {
+    display: none !important;
+  }
+}
+
+/* ── Screen: print-only elements hidden ── */
+.print-only {
+  display: none;
+}

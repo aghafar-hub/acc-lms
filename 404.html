@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>
+    // GitHub Pages SPA Routing Fix
+    // Redirects 404s back to index.html preserving the path in sessionStorage
+    const path = window.location.pathname;
+    // If it's a deep page link, go to index — auth will redirect to correct page
+    sessionStorage.setItem('lms_redirect', path);
+    window.location.replace('/');
+  </script>
+  <title>ACC LMS — Redirecting...</title>
+</head>
+<body>
+  <p>Redirecting...</p>
+</body>
+</html>

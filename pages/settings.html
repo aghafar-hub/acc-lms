@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title data-i18n="settings.title">Settings — ACC LMS</title>
+  <link rel="icon" href="../assets/favicon.ico" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Cairo:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/tokens.css" />
+  <link rel="stylesheet" href="../css/base.css" />
+  <link rel="stylesheet" href="../css/sidebar.css" />
+  <link rel="stylesheet" href="../css/components.css" />
+  <link rel="manifest" href="../manifest.json">
+  <link rel="stylesheet" href="../css/print.css" media="print">
+  <meta name="theme-color" content="#1E2B5E">
+  <style>
+    .settings-layout { display: grid; grid-template-columns: 220px 1fr; gap: var(--space-5); align-items: start; }
+    @media (max-width: 768px) { .settings-layout { grid-template-columns: 1fr; } }
+    .settings-nav { background: var(--color-surface); border-radius: var(--radius-lg); border: 1px solid var(--color-border); overflow: hidden; position: sticky; top: 80px; }
+    .settings-nav-item { display: flex; align-items: center; gap: var(--space-3); padding: 12px var(--space-4); font-size: var(--text-sm); font-weight: 500; cursor: pointer; border: none; background: transparent; width: 100%; text-align: left; color: var(--color-text-secondary); transition: all 0.15s; border-left: 3px solid transparent; }
+    .settings-nav-item:hover { background: var(--color-surface-overlay); color: var(--color-text-primary); }
+    .settings-nav-item.active { background: rgba(38,53,128,0.06); color: var(--color-brand-navy); font-weight: 600; border-left-color: var(--color-brand-navy); }
+    .settings-panel { display: none; }
+    .settings-panel.active { display: block; }
+    .settings-section { background: var(--color-surface); border-radius: var(--radius-lg); border: 1px solid var(--color-border); padding: var(--space-5); margin-bottom: var(--space-4); }
+    .settings-section-title { font-size: var(--text-base); font-weight: 700; color: var(--color-text-primary); margin-bottom: 4px; }
+    .settings-section-desc { font-size: var(--text-sm); color: var(--color-text-muted); margin-bottom: var(--space-4); }
+    .settings-divider { border: none; border-top: 1px solid var(--color-border); margin: var(--space-4) 0; }
+    .toggle-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); padding: var(--space-3) 0; border-bottom: 1px solid var(--color-border); }
+    .toggle-row:last-child { border-bottom: none; }
+    .toggle-info { flex: 1; }
+    .toggle-label { font-size: var(--text-sm); font-weight: 500; color: var(--color-text-primary); }
+    .toggle-desc { font-size: var(--text-xs); color: var(--color-text-muted); margin-top: 2px; }
+    .toggle { position: relative; display: inline-block; width: 44px; height: 24px; }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle-slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: var(--color-border); border-radius: 34px; transition: 0.2s; }
+    .toggle-slider:before { position: absolute; content: ''; height: 18px; width: 18px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.2s; }
+    .toggle input:checked + .toggle-slider { background: var(--color-brand-green); }
+    .toggle input:checked + .toggle-slider:before { transform: translateX(20px); }
+    .theme-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: var(--space-3); }
+    .theme-option { border: 2px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-3); cursor: pointer; text-align: center; transition: all 0.15s; }
+    .theme-option:hover { border-color: var(--color-brand-navy); }
+    .theme-option.selected { border-color: var(--color-brand-navy); background: rgba(38,53,128,0.05); }
+    .theme-swatch { width: 48px; height: 32px; border-radius: var(--radius-md); margin: 0 auto var(--space-2); }
+    .theme-name { font-size: var(--text-xs); font-weight: 600; }
+    .lang-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+    .lang-option { border: 2px solid var(--color-border); border-radius: var(--radius-lg); padding: var(--space-4); cursor: pointer; transition: all 0.15s; display: flex; align-items: center; gap: var(--space-3); }
+    .lang-option:hover { border-color: var(--color-brand-navy); }
+    .lang-option.selected { border-color: var(--color-brand-navy); background: rgba(38,53,128,0.05); }
+    .lang-flag { font-size: 24px; }
+    .api-status { display: inline-flex; align-items: center; gap: 6px; font-size: var(--text-xs); font-weight: 600; padding: 4px 10px; border-radius: var(--radius-full); }
+    .api-status--ok      { background: var(--color-approved-bg); color: var(--color-approved); }
+    .api-status--error   { background: var(--color-critical-bg); color: var(--color-critical); }
+    .api-status--testing { background: var(--color-info-bg); color: var(--color-info); }
+    .api-status--unknown { background: var(--color-surface-overlay); color: var(--color-text-muted); }
+    .about-info { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+    .about-item { background: var(--color-surface-overlay); border-radius: var(--radius-md); padding: var(--space-3); }
+    .about-item dt { font-size: var(--text-xs); color: var(--color-text-muted); margin-bottom: 3px; }
+    .about-item dd { font-size: var(--text-sm); font-weight: 600; color: var(--color-text-primary); }
+  </style>
+</head>
+<body>
+  <div class="app-layout" id="appLayout">
+    <aside class="sidebar" id="sidebar"></aside>
+    <div class="main-wrapper">
+      <header class="app-header" id="appHeader"></header>
+      <main class="main-content">
+
+        <div class="page-header">
+          <div class="page-header-left">
+            <h1 class="page-title" data-i18n="settings.pageTitle">Settings</h1>
+            <p class="page-subtitle" data-i18n="settings.pageSubtitle">Application configuration and preferences</p>
+          </div>
+        </div>
+
+        <div class="settings-layout">
+          <!-- Settings Nav -->
+          <nav class="settings-nav">
+            <button class="settings-nav-item active" data-panel="connection">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+              API Connection
+            </button>
+            <button class="settings-nav-item" data-panel="appearance">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+              Appearance
+            </button>
+            <button class="settings-nav-item" data-panel="language">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 8l6 6"/><path d="M4 14l6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="M22 22l-5-10-5 10"/><path d="M14 18h6"/></svg>
+              Language
+            </button>
+            <button class="settings-nav-item" data-panel="sync">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+              Sync
+            </button>
+            <button class="settings-nav-item" data-panel="password">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              Change Password
+            </button>
+            <button class="settings-nav-item" data-panel="system" data-permission="system.config.update">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>
+              System (Admin)
+            </button>
+            <button class="settings-nav-item" data-panel="about">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              About
+            </button>
+          </nav>
+
+          <!-- Settings Panels -->
+          <div class="settings-content">
+
+            <!-- ── API Connection ── -->
+            <div class="settings-panel active" id="panel-connection">
+              <div class="settings-section">
+                <h2 class="settings-section-title">Google Apps Script API</h2>
+                <p class="settings-section-desc">Configure the URL of your deployed Google Apps Script web application. This is required for the LMS to communicate with the backend.</p>
+
+                <div class="form-group">
+                  <label class="form-label form-label--required" for="apiUrl">Web App URL</label>
+                  <div style="display:flex;gap:var(--space-2)">
+                    <input type="url" id="apiUrl" class="form-input" style="flex:1"
+                           placeholder="https://script.google.com/macros/s/…/exec" />
+                    <button class="btn btn-secondary" id="btnTestApi">Test Connection</button>
+                  </div>
+                  <small class="form-hint">Find this in Google Apps Script → Deploy → Manage deployments → Web App URL</small>
+                </div>
+
+                <div style="display:flex;align-items:center;gap:var(--space-3);margin-top:var(--space-3)">
+                  <span id="apiStatusBadge" class="api-status api-status--unknown">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg>
+                    Not tested
+                  </span>
+                  <span id="apiVersionText" class="text-muted" style="font-size:var(--text-xs)"></span>
+                </div>
+
+                <hr class="settings-divider" />
+                <button class="btn btn-primary" id="btnSaveApi">Save API URL</button>
+              </div>
+            </div>
+
+            <!-- ── Appearance ── -->
+            <div class="settings-panel" id="panel-appearance">
+              <div class="settings-section">
+                <h2 class="settings-section-title">Theme</h2>
+                <p class="settings-section-desc">Choose how the application looks. System follows your device preference.</p>
+                <div class="theme-grid" id="themeGrid">
+                  <div class="theme-option selected" data-theme="light">
+                    <div class="theme-swatch" style="background:linear-gradient(135deg,#F0F2F7 50%,#1E2B5E 50%)"></div>
+                    <div class="theme-name">Light</div>
+                  </div>
+                  <div class="theme-option" data-theme="dark">
+                    <div class="theme-swatch" style="background:linear-gradient(135deg,#0F172A 50%,#1E2B5E 50%)"></div>
+                    <div class="theme-name">Dark</div>
+                  </div>
+                  <div class="theme-option" data-theme="system">
+                    <div class="theme-swatch" style="background:linear-gradient(135deg,#F0F2F7 50%,#0F172A 50%)"></div>
+                    <div class="theme-name">System</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="settings-section">
+                <h2 class="settings-section-title">Display Preferences</h2>
+                <div class="toggle-row">
+                  <div class="toggle-info">
+                    <div class="toggle-label">Compact Table Rows</div>
+                    <div class="toggle-desc">Reduce row height to fit more records per page</div>
+                  </div>
+                  <label class="toggle"><input type="checkbox" id="compactRows" /><span class="toggle-slider"></span></label>
+                </div>
+                <div class="toggle-row">
+                  <div class="toggle-info">
+                    <div class="toggle-label">Show Technical IDs</div>
+                    <div class="toggle-desc">Display system IDs like HistoryID in tables</div>
+                  </div>
+                  <label class="toggle"><input type="checkbox" id="showTechIds" checked /><span class="toggle-slider"></span></label>
+                </div>
+                <div class="toggle-row">
+                  <div class="toggle-info">
+                    <div class="toggle-label">Collapsed Sidebar Default</div>
+                    <div class="toggle-desc">Start with icon-only sidebar on desktop</div>
+                  </div>
+                  <label class="toggle"><input type="checkbox" id="sidebarCollapsed" /><span class="toggle-slider"></span></label>
+                </div>
+              </div>
+            </div>
+
+            <!-- ── Language ── -->
+            <div class="settings-panel" id="panel-language">
+              <div class="settings-section">
+                <h2 class="settings-section-title">Display Language</h2>
+                <p class="settings-section-desc">The interface will switch language immediately. All dates and numbers will be formatted for the selected locale.</p>
+                <div class="lang-grid">
+                  <div class="lang-option selected" data-lang="en">
+                    <div class="lang-flag">🇬🇧</div>
+                    <div>
+                      <div style="font-weight:600">English</div>
+                      <div style="font-size:var(--text-xs);color:var(--color-text-muted)">Left to right</div>
+                    </div>
+                  </div>
+                  <div class="lang-option" data-lang="ar" dir="rtl">
+                    <div class="lang-flag">🇸🇦</div>
+                    <div>
+                      <div style="font-weight:600">العربية</div>
+                      <div style="font-size:var(--text-xs);color:var(--color-text-muted)">من اليمين إلى اليسار</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="settings-section">
+                <h2 class="settings-section-title">Date &amp; Number Format</h2>
+                <div class="form-group">
+                  <label class="form-label" for="dateFormat">Date Format</label>
+                  <select id="dateFormat" class="form-select">
+                    <option value="DD/MM/YYYY">DD/MM/YYYY (28/06/2025)</option>
+                    <option value="MM/DD/YYYY">MM/DD/YYYY (06/28/2025)</option>
+                    <option value="YYYY-MM-DD">YYYY-MM-DD (2025-06-28)</option>
+                    <option value="DD MMM YYYY">DD MMM YYYY (28 Jun 2025)</option>
+                  </select>
+                </div>
+                <button class="btn btn-primary" id="btnSaveLang">Apply Language</button>
+              </div>
+            </div>
+
+            <!-- ── Sync ── -->
+            <div class="settings-panel" id="panel-sync">
+              <div class="settings-section">
+                <h2 class="settings-section-title">Background Sync</h2>
+                <p class="settings-section-desc">The LMS syncs data from the backend in the background to keep your view up to date.</p>
+
+                <div class="toggle-row">
+                  <div class="toggle-info">
+                    <div class="toggle-label">Enable Background Sync</div>
+                    <div class="toggle-desc">Automatically refresh data every 30 seconds</div>
+                  </div>
+                  <label class="toggle"><input type="checkbox" id="bgSync" checked /><span class="toggle-slider"></span></label>
+                </div>
+                <div class="toggle-row">
+                  <div class="toggle-info">
+                    <div class="toggle-label">Show Sync Indicator</div>
+                    <div class="toggle-desc">Display a subtle indicator when syncing</div>
+                  </div>
+                  <label class="toggle"><input type="checkbox" id="showSyncIndicator" checked /><span class="toggle-slider"></span></label>
+                </div>
+
+                <hr class="settings-divider" />
+                <div class="form-group">
+                  <label class="form-label" for="syncInterval">Sync Interval</label>
+                  <select id="syncInterval" class="form-select">
+                    <option value="15000">Every 15 seconds</option>
+                    <option value="30000" selected>Every 30 seconds</option>
+                    <option value="60000">Every 1 minute</option>
+                    <option value="300000">Every 5 minutes</option>
+                  </select>
+                </div>
+
+                <hr class="settings-divider" />
+                <div style="display:flex;gap:var(--space-3)">
+                  <button class="btn btn-secondary" id="btnForceSync">Force Sync Now</button>
+                  <button class="btn btn-ghost btn--danger" id="btnClearCache">Clear Local Cache</button>
+                </div>
+                <div id="syncStatus" style="margin-top:var(--space-3);font-size:var(--text-xs);color:var(--color-text-muted)"></div>
+              </div>
+            </div>
+
+            <!-- ── Change Password ── -->
+            <div class="settings-panel" id="panel-password">
+              <div class="settings-section">
+                <h2 class="settings-section-title">Change Password</h2>
+                <p class="settings-section-desc">Passwords must be at least 8 characters. Use a mix of letters and numbers.</p>
+                <form id="passwordForm" novalidate>
+                  <div class="form-group">
+                    <label class="form-label form-label--required" for="currentPassword">Current Password</label>
+                    <input type="password" id="currentPassword" name="currentPassword" class="form-input" required autocomplete="current-password" />
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label form-label--required" for="newPassword">New Password</label>
+                    <input type="password" id="newPassword" name="newPassword" class="form-input" required minlength="8" autocomplete="new-password" />
+                    <small class="form-hint">Minimum 8 characters</small>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label form-label--required" for="confirmPassword">Confirm New Password</label>
+                    <input type="password" id="confirmPassword" name="confirmPassword" class="form-input" required autocomplete="new-password" />
+                  </div>
+                  <button class="btn btn-primary" type="button" id="btnChangePassword">Change Password</button>
+                </form>
+              </div>
+            </div>
+
+            <!-- ── System (Admin only) ── -->
+            <div class="settings-panel" id="panel-system">
+              <div class="settings-section">
+                <h2 class="settings-section-title">System Configuration</h2>
+                <p class="settings-section-desc">These settings affect all users. Changes take effect immediately on the backend.</p>
+
+                <div class="alert alert--warning" style="margin-bottom:var(--space-4)">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+                  Admin access required. Changes are logged in the audit trail.
+                </div>
+
+                <div class="form-group">
+                  <label class="form-label" for="sysContractorName">Contractor Name</label>
+                  <input type="text" id="sysContractorName" class="form-input" placeholder="e.g. Arabian Cement Company" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="sysSelfApproval">Self-Approval Policy</label>
+                  <select id="sysSelfApproval" class="form-select">
+                    <option value="BLOCKED">Blocked — Supervisors cannot approve own submissions</option>
+                    <option value="ALLOWED">Allowed (not recommended)</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="sysSessionTTL">Session TTL (hours)</label>
+                  <input type="number" id="sysSessionTTL" class="form-input" min="1" max="24" value="8" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="sysAllowedDomains">Allowed Email Domains</label>
+                  <input type="text" id="sysAllowedDomains" class="form-input" placeholder="e.g. acc.com.sa, contractor.com (leave blank for all)" />
+                  <small class="form-hint">Comma-separated. Leave blank to allow all valid email domains.</small>
+                </div>
+                <button class="btn btn-primary" id="btnSaveSystem">Save System Config</button>
+              </div>
+
+              <div class="settings-section">
+                <h2 class="settings-section-title">Maintenance</h2>
+                <p class="settings-section-desc">Administrative operations — use with caution.</p>
+                <div style="display:flex;flex-wrap:wrap;gap:var(--space-3)">
+                  <button class="btn btn-secondary" id="btnSessionCleanup">Clean Expired Sessions</button>
+                  <button class="btn btn-secondary" id="btnRecalculate">Recalculate All Points</button>
+                  <button class="btn btn-secondary" id="btnSystemInfo">System Info</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- ── About ── -->
+            <div class="settings-panel" id="panel-about">
+              <div class="settings-section" style="text-align:center;padding:var(--space-8)">
+                <img src="../assets/logo.png" alt="ACC Logo" style="height:64px;margin-bottom:var(--space-4)" onerror="this.style.display='none'" />
+                <h2 style="font-size:var(--text-xl);font-weight:700;color:var(--color-brand-navy)">ACC Lubrication Management System</h2>
+                <p style="color:var(--color-text-muted);margin-top:4px">Arabian Cement Company</p>
+              </div>
+              <div class="settings-section">
+                <div class="about-info">
+                  <dl class="about-item"><dt>App Version</dt><dd id="aboutVersion">5.0.0</dd></dl>
+                  <dl class="about-item"><dt>Phase</dt><dd>Phase 5 — PWA + Photos</dd></dl>
+                  <dl class="about-item"><dt>Backend Endpoints</dt><dd>101 API endpoints</dd></dl>
+                  <dl class="about-item"><dt>Database</dt><dd>Google Sheets (18 tabs)</dd></dl>
+                  <dl class="about-item"><dt>Auth</dt><dd>SHA-256 + Sessions</dd></dl>
+                  <dl class="about-item"><dt>Deployment</dt><dd>GitHub Pages + PWA</dd></dl>
+                </div>
+              </div>
+
+              <!-- Phase 5: PWA Install Section -->
+              <div class="settings-section">
+                <h2 class="settings-section-title">📱 Install App</h2>
+                <p class="settings-section-desc">Install the LMS as a standalone app on your device for faster access and offline capabilities.</p>
+                <div id="pwa-install-status" style="margin-top:var(--space-4);">
+                  <div id="pwa-installed-notice" style="display:none;" class="alert alert--success">
+                    <strong>✅ App is installed</strong> — Running as a standalone application.
+                  </div>
+                  <div id="pwa-install-prompt" style="display:none;">
+                    <button class="btn btn-primary" id="btn-install-pwa">
+                      <span>📥</span> Install on This Device
+                    </button>
+                    <p style="font-size:var(--text-xs);color:var(--color-text-muted);margin-top:8px;">
+                      Works on Android, iOS (Safari → Share → Add to Home Screen), and desktop Chrome.
+                    </p>
+                  </div>
+                  <div id="pwa-not-available" style="">
+                    <p style="font-size:var(--text-sm);color:var(--color-text-muted);">
+                      To install: open this site in Chrome or Safari, then use the browser's "Install" or "Add to Home Screen" option.
+                    </p>
+                  </div>
+                </div>
+
+                <div style="margin-top:var(--space-4);padding-top:var(--space-4);border-top:1px solid var(--color-border);">
+                  <h3 style="font-size:var(--text-sm);font-weight:600;margin-bottom:var(--space-2);">Service Worker Status</h3>
+                  <div id="sw-status" style="font-size:var(--text-xs);color:var(--color-text-muted);">Checking…</div>
+                </div>
+              </div>
+
+              <div class="settings-section">
+                <h2 class="settings-section-title">System Statistics</h2>
+                <p id="aboutPoints" style="color:var(--color-text-muted);font-size:var(--text-sm)">Loading system stats…</p>
+              </div>
+            </div>
+
+          </div><!-- /.settings-content -->
+        </div><!-- /.settings-layout -->
+
+      </main>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+  <div class="search-overlay" id="searchOverlay" hidden></div>
+
+  <script src="../js/core.js"></script>
+  <script src="../js/shell.js"></script>
+  <script>
+  (function() {
+    'use strict';
+
+    App.init({ requireAuth: true }).then(() => {
+      Shell.init();
+      setupNav();
+      loadCurrentSettings();
+      setupHandlers();
+      I18n._rerender();
+    });
+
+    // ── Nav ─────────────────────────────────────────────────
+    function setupNav() {
+      const user = Auth.getUser();
+      document.querySelectorAll('.settings-nav-item').forEach(btn => {
+        // Hide admin-only panel for non-admins
+        if (btn.dataset.permission && !Auth.can(btn.dataset.permission)) {
+          btn.style.display = 'none'; return;
+        }
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.settings-nav-item').forEach(b=>b.classList.remove('active'));
+          document.querySelectorAll('.settings-panel').forEach(p=>p.classList.remove('active'));
+          btn.classList.add('active');
+          document.getElementById('panel-'+btn.dataset.panel).classList.add('active');
+        });
+      });
+    }
+
+    // ── Load Current Settings ───────────────────────────────
+    function loadCurrentSettings() {
+      // API URL
+      const savedUrl = Store.get('lms_api_url') || CONFIG.API_URL || '';
+      document.getElementById('apiUrl').value = savedUrl;
+
+      // Theme
+      const theme = Store.get(CONFIG.THEME_KEY) || 'light';
+      document.querySelectorAll('.theme-option').forEach(o => {
+        o.classList.toggle('selected', o.dataset.theme === theme);
+      });
+
+      // Language
+      const lang = I18n.currentLang();
+      document.querySelectorAll('.lang-option').forEach(o => {
+        o.classList.toggle('selected', o.dataset.lang === lang);
+      });
+
+      // Sidebar
+      document.getElementById('sidebarCollapsed').checked = Store.get(CONFIG.SIDEBAR_KEY) || false;
+
+      // Sync
+      const syncInterval = Store.get('lms_sync_interval') || 30000;
+      document.getElementById('syncInterval').value = syncInterval;
+
+      // About
+      document.getElementById('aboutVersion').textContent = CONFIG.APP_VERSION;
+      loadAboutStats();
+    }
+
+    async function loadAboutStats() {
+      const res = await API.systemVersion();
+      if (res.success) {
+        const d = res.data || {};
+        document.getElementById('aboutPoints').textContent = `${d.totalPoints||'—'} active lubrication points · ${d.totalHistory||'—'} change records`;
+        document.getElementById('apiVersionText').textContent = `Backend v${d.version||'—'}`;
+      }
+    }
+
+    // ── Handlers ────────────────────────────────────────────
+    function setupHandlers() {
+
+      // API Test & Save
+      document.getElementById('btnTestApi').addEventListener('click', async () => {
+        const url = document.getElementById('apiUrl').value.trim();
+        if (!url) { Toast.show('Please enter an API URL', 'warning'); return; }
+        setApiStatus('testing', 'Testing…');
+        API.setUrl(url);
+        const res = await API.systemPing();
+        if (res.success) {
+          setApiStatus('ok', `Connected`);
+          document.getElementById('apiVersionText').textContent = `Backend v${res.data?.version||'—'}`;
+          Toast.show('Connection successful', 'success');
+        } else {
+          setApiStatus('error', 'Connection failed');
+          Toast.show(res.error || 'Could not reach the API', 'error');
+        }
+      });
+
+      document.getElementById('btnSaveApi').addEventListener('click', () => {
+        const url = document.getElementById('apiUrl').value.trim();
+        Store.set('lms_api_url', url);
+        API.setUrl(url);
+        Toast.show('API URL saved', 'success');
+      });
+
+      // Theme
+      document.querySelectorAll('.theme-option').forEach(opt => {
+        opt.addEventListener('click', () => {
+          document.querySelectorAll('.theme-option').forEach(o=>o.classList.remove('selected'));
+          opt.classList.add('selected');
+          Store.set(CONFIG.THEME_KEY, opt.dataset.theme);
+          Toast.show(`Theme changed to ${opt.dataset.theme}`, 'success');
+          // Apply theme (Theme engine in core.js)
+          if (window.Theme) Theme.apply(opt.dataset.theme);
+        });
+      });
+
+      // Language
+      document.querySelectorAll('.lang-option').forEach(opt => {
+        opt.addEventListener('click', () => {
+          document.querySelectorAll('.lang-option').forEach(o=>o.classList.remove('selected'));
+          opt.classList.add('selected');
+        });
+      });
+      document.getElementById('btnSaveLang').addEventListener('click', () => {
+        const sel = document.querySelector('.lang-option.selected');
+        if (!sel) return;
+        I18n.setLang(sel.dataset.lang);
+        Toast.show('Language updated', 'success');
+      });
+
+      // Sidebar toggle
+      document.getElementById('sidebarCollapsed').addEventListener('change', e => {
+        Store.set(CONFIG.SIDEBAR_KEY, e.target.checked);
+      });
+
+      // Sync settings
+      document.getElementById('syncInterval').addEventListener('change', e => {
+        Store.set('lms_sync_interval', parseInt(e.target.value));
+        if (window.SyncManager) SyncManager.setInterval(parseInt(e.target.value));
+      });
+
+      document.getElementById('btnForceSync').addEventListener('click', async () => {
+        document.getElementById('syncStatus').textContent = 'Syncing…';
+        if (window.SyncManager) await SyncManager.forceSync();
+        document.getElementById('syncStatus').textContent = `Last synced: ${new Date().toLocaleTimeString()}`;
+        Toast.show('Sync complete', 'success');
+      });
+
+      document.getElementById('btnClearCache').addEventListener('click', () => {
+        if (!confirm('Clear all locally cached data? The app will reload.')) return;
+        if (window.LocalCache) LocalCache.clear();
+        Toast.show('Cache cleared', 'success');
+        setTimeout(() => location.reload(), 1000);
+      });
+
+      // Change Password
+      document.getElementById('btnChangePassword').addEventListener('click', async () => {
+        const current = document.getElementById('currentPassword').value;
+        const newPw   = document.getElementById('newPassword').value;
+        const confirm = document.getElementById('confirmPassword').value;
+        if (!current || !newPw || !confirm) { Toast.show('Please fill all fields', 'warning'); return; }
+        if (newPw.length < 8) { Toast.show('Password must be at least 8 characters', 'warning'); return; }
+        if (newPw !== confirm) { Toast.show('Passwords do not match', 'error'); return; }
+        const user = Auth.getUser();
+        const res = await API.users.changePassword(user.UserID, { currentPassword: current, newPassword: newPw });
+        if (res.success) {
+          Toast.show('Password changed successfully', 'success');
+          document.getElementById('passwordForm').reset();
+        } else {
+          Toast.show(res.error || 'Failed to change password', 'error');
+        }
+      });
+
+      // System Config (admin)
+      document.getElementById('btnSaveSystem')?.addEventListener('click', async () => {
+        const payload = {
+          contractorName: document.getElementById('sysContractorName').value.trim(),
+          selfApprovalBlocked: document.getElementById('sysSelfApproval').value === 'BLOCKED',
+          sessionTTLHours: parseInt(document.getElementById('sysSessionTTL').value) || 8,
+          allowedEmailDomains: document.getElementById('sysAllowedDomains').value.trim(),
+        };
+        const res = await API.system.updateConfig(payload);
+        if (res.success) Toast.show('System config saved', 'success');
+        else Toast.show(res.error || 'Failed to save', 'error');
+      });
+
+      document.getElementById('btnSessionCleanup')?.addEventListener('click', async () => {
+        const res = await API.system.cleanupSessions?.() || { success: true };
+        Toast.show('Session cleanup triggered', 'success');
+      });
+
+      document.getElementById('btnRecalculate')?.addEventListener('click', async () => {
+        if (!confirm('Recalculate all lubrication point next service dates? This may take a moment.')) return;
+        const res = await API.points.recalculateAll?.() || { success: true };
+        Toast.show('Recalculation triggered', 'success');
+      });
+
+      document.getElementById('btnSystemInfo')?.addEventListener('click', async () => {
+        const res = await API.systemVersion();
+        if (res.success) alert(JSON.stringify(res.data, null, 2));
+      });
+    }
+
+    function setApiStatus(status, text) {
+      const badge = document.getElementById('apiStatusBadge');
+      badge.className = `api-status api-status--${status}`;
+      badge.innerHTML = `<svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="10"/></svg> ${text}`;
+    }
+
+    // ── Phase 5: PWA Install ─────────────────────────────────
+    function initPWASection() {
+      const installedEl  = document.getElementById('pwa-installed-notice');
+      const promptEl     = document.getElementById('pwa-install-prompt');
+      const notAvailEl   = document.getElementById('pwa-not-available');
+      const swStatusEl   = document.getElementById('sw-status');
+
+      // Check if already installed as standalone
+      if (typeof PWA !== 'undefined' && PWA.isInstalled()) {
+        installedEl.style.display  = 'block';
+        promptEl.style.display     = 'none';
+        notAvailEl.style.display   = 'none';
+      }
+
+      // Listen for PWA installable event
+      EventBus.on('pwa:installable', () => {
+        promptEl.style.display   = 'block';
+        notAvailEl.style.display = 'none';
+      });
+
+      // Install button
+      document.getElementById('btn-install-pwa')?.addEventListener('click', async () => {
+        if (typeof PWA !== 'undefined') {
+          const accepted = await PWA.promptInstall();
+          if (accepted) {
+            Toast.success('App installed successfully!');
+            installedEl.style.display = 'block';
+            promptEl.style.display    = 'none';
+          }
+        }
+      });
+
+      // SW status
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistration('/').then(reg => {
+          if (reg) {
+            const state = reg.active ? 'Active' : reg.installing ? 'Installing' : reg.waiting ? 'Waiting' : 'Registered';
+            swStatusEl.innerHTML = `<span style="color:var(--color-approved)">✅ Service Worker: ${state}</span> — Offline caching enabled`;
+          } else {
+            swStatusEl.textContent = '⚠️ Service Worker not registered yet. Reload to activate.';
+          }
+        }).catch(() => {
+          swStatusEl.textContent = '❌ Service Worker unavailable in this environment.';
+        });
+      } else {
+        swStatusEl.textContent = '❌ Service Workers not supported in this browser.';
+      }
+    }
+
+    initPWASection();
+
+  })();
+  </script>
+</body>
+</html>

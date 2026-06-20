@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Arabian Cement Company — Lubrication Management System">
+  <meta name="theme-color" content="#1E2B5E">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="ACC LMS">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="assets/logo.png">
+  <title>LMS — Arabian Cement Company</title>
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/login.css">
+  <link rel="icon" type="image/png" href="assets/logo.png">
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════
+     LOGIN PAGE
+═══════════════════════════════════════════════════════════ -->
+<div class="login-page" id="login-page">
+
+  <!-- Left Brand Panel -->
+  <div class="login-brand-panel">
+    <div class="brand-top">
+      <img src="assets/logo.png" alt="Arabian Cement Company" class="login-logo">
+
+      <div class="login-tagline">
+        <h1>Lubrication<br>Management<br>System</h1>
+        <p>A complete lubrication lifecycle platform for Arabian Cement Company — tracking 5,000+ points across all production lines.</p>
+      </div>
+    </div>
+
+    <div class="login-features">
+      <div class="feature-item">
+        <div class="feature-icon">⚙️</div>
+        <div class="feature-text">
+          <strong>5,000+ Lubrication Points</strong>
+          Complete tracking across 61 plant locations
+        </div>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon">✅</div>
+        <div class="feature-text">
+          <strong>Multi-Role Workflow</strong>
+          Technician → Supervisor → Admin approval chain
+        </div>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon">🌐</div>
+        <div class="feature-text">
+          <strong>Bilingual Support</strong>
+          Full English and Arabic interface
+        </div>
+      </div>
+      <div class="feature-item">
+        <div class="feature-icon">📱</div>
+        <div class="feature-text">
+          <strong>Mobile-First Design</strong>
+          Optimized for field technicians on any device
+        </div>
+      </div>
+    </div>
+
+    <div class="brand-version">v4.0.0 — Phase 4</div>
+  </div>
+
+  <!-- Right Form Panel -->
+  <div class="login-form-panel">
+    <div class="login-card">
+
+      <!-- Mobile brand -->
+      <div class="login-card-brand">
+        <img src="assets/logo.png" alt="ACC" class="login-card-logo">
+        <div class="login-card-brand-text">
+          <span class="login-card-brand-name">ARABIAN CEMENT</span>
+          <span class="login-card-brand-sub">Lubrication Management System</span>
+        </div>
+      </div>
+
+      <div class="login-heading">
+        <h2 data-i18n="login.title">Welcome Back</h2>
+        <p data-i18n="login.subtitle">Sign in to your account</p>
+      </div>
+
+      <!-- Error message -->
+      <div class="login-error" id="login-error" role="alert">
+        <span>⚠</span>
+        <span id="login-error-text">Invalid employee number or password</span>
+      </div>
+
+      <form class="login-form" id="login-form" novalidate>
+
+        <div class="form-group">
+          <label class="form-label required" for="employee-no" data-i18n="login.employee_no">
+            Employee Number
+          </label>
+          <input
+            type="text"
+            id="employee-no"
+            class="form-control"
+            data-i18n-placeholder="login.employee_no_placeholder"
+            placeholder="Enter your employee number"
+            autocomplete="username"
+            inputmode="numeric"
+            required
+          >
+        </div>
+
+        <div class="form-group">
+          <label class="form-label required" for="password" data-i18n="login.password">
+            Password
+          </label>
+          <div class="password-wrapper">
+            <input
+              type="password"
+              id="password"
+              class="form-control"
+              data-i18n-placeholder="login.password_placeholder"
+              placeholder="Enter your password"
+              autocomplete="current-password"
+              required
+            >
+            <button type="button" class="password-toggle" id="pwd-toggle" aria-label="Toggle password visibility">
+              👁
+            </button>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-lg login-btn" id="login-btn">
+          <span data-i18n="login.sign_in">Sign In</span>
+        </button>
+
+      </form>
+
+      <!-- Language Toggle -->
+      <div class="login-lang-toggle">
+        <button class="lang-btn active" id="lang-en" onclick="setLoginLang('en')">English</button>
+        <button class="lang-btn" id="lang-ar" onclick="setLoginLang('ar')">العربية</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- Change Password Modal (First Login) -->
+<div class="change-password-overlay" id="change-pwd-overlay" style="display:none;">
+  <div class="change-password-card">
+    <h2 style="margin-bottom:8px;" data-i18n="login.change_password.title">Change Your Password</h2>
+    <p style="margin-bottom:24px;font-size:var(--text-sm);" data-i18n="login.change_password.subtitle">
+      For security, please set a new password.
+    </p>
+
+    <div class="login-error" id="pwd-error" role="alert" style="margin-bottom:16px;">
+      <span>⚠</span>
+      <span id="pwd-error-text"></span>
+    </div>
+
+    <form id="change-pwd-form" class="login-form" novalidate>
+      <div class="form-group">
+        <label class="form-label required" for="new-pwd" data-i18n="login.new_password">New Password</label>
+        <div class="password-wrapper">
+          <input type="password" id="new-pwd" class="form-control" placeholder="Min. 8 characters" required>
+          <button type="button" class="password-toggle" onclick="togglePwd('new-pwd')">👁</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label required" for="confirm-pwd" data-i18n="login.confirm_password">Confirm Password</label>
+        <div class="password-wrapper">
+          <input type="password" id="confirm-pwd" class="form-control" placeholder="Repeat password" required>
+          <button type="button" class="password-toggle" onclick="togglePwd('confirm-pwd')">👁</button>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary w-full" style="margin-top:8px;" data-i18n="login.update_password">
+        Update Password
+      </button>
+    </form>
+  </div>
+</div>
+
+<div id="toast-container" class="toast-container"></div>
+
+<script src="js/core.js"></script>
+<script>
+// ── Login Page Controller ────────────────────────────────────
+
+(async function() {
+  await App.init();
+  I18n._rerender();
+
+  // If already logged in, redirect to dashboard
+  if (Auth.isLoggedIn()) {
+    redirectByRole(Auth.getRole());
+    return;
+  }
+
+// Check whether the API is actually configured (CONFIG.API_URL fallback
+  // means this is true even with nothing saved in localStorage yet)
+  if (!API._baseUrl) {
+    // Show settings prompt
+    const notice = document.createElement('div');
+    notice.className = 'alert alert-warning';
+    notice.style.cssText = 'margin:0 0 16px;font-size:var(--text-xs)';
+    notice.innerHTML = '⚙ <strong>Setup required:</strong> Configure your API URL in <a href="pages/settings.html" style="color:inherit;font-weight:700;">Settings</a> before signing in.';
+    document.querySelector('.login-form').prepend(notice);
+  }
+
+  // Form submission
+  const form = document.getElementById('login-form');
+  const loginBtn = document.getElementById('login-btn');
+
+  form.addEventListener('submit', async e => {
+    e.preventDefault();
+    const employeeNo = document.getElementById('employee-no').value.trim();
+    const password   = document.getElementById('password').value;
+
+    if (!employeeNo || !password) {
+      showLoginError('Please fill in all fields');
+      return;
+    }
+
+    loginBtn.disabled = true;
+    loginBtn.innerHTML = '<span class="spinner" style="width:18px;height:18px;"></span> Signing in...';
+    hideLoginError();
+
+    const result = await Auth.login(employeeNo, password);
+
+    if (result.success) {
+      if (result.firstLogin) {
+        // Show change password overlay
+        document.getElementById('change-pwd-overlay').style.display = 'flex';
+        loginBtn.disabled = false;
+        loginBtn.innerHTML = '<span data-i18n="login.sign_in">Sign In</span>';
+      } else {
+        redirectByRole(Auth.getRole());
+      }
+    } else {
+      showLoginError(result.error || I18n.t('login.error.invalid'));
+      loginBtn.disabled = false;
+      loginBtn.innerHTML = `<span>${I18n.t('login.sign_in')}</span>`;
+    }
+  });
+
+  // Password toggle
+  document.getElementById('pwd-toggle').addEventListener('click', function() {
+    togglePwd('password');
+  });
+
+  // Change password form
+  document.getElementById('change-pwd-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const newPwd     = document.getElementById('new-pwd').value;
+    const confirmPwd = document.getElementById('confirm-pwd').value;
+
+    if (newPwd.length < 8) {
+      showPwdError(I18n.t('login.password_too_short'));
+      return;
+    }
+    if (newPwd !== confirmPwd) {
+      showPwdError(I18n.t('login.passwords_mismatch'));
+      return;
+    }
+
+    const res = await API.changePassword('', newPwd);
+    if (res.success) {
+      document.getElementById('change-pwd-overlay').style.display = 'none';
+      Toast.success(I18n.t('msg.saved'));
+      redirectByRole(Auth.getRole());
+    } else {
+      showPwdError(res.error || I18n.t('error.generic'));
+    }
+  });
+
+  // Update language button states
+  const lang = I18n.getLang();
+  document.getElementById('lang-en').classList.toggle('active', lang === 'en');
+  document.getElementById('lang-ar').classList.toggle('active', lang === 'ar');
+})();
+
+function showLoginError(msg) {
+  const el = document.getElementById('login-error');
+  document.getElementById('login-error-text').textContent = msg;
+  el.classList.add('visible');
+}
+function hideLoginError() {
+  document.getElementById('login-error').classList.remove('visible');
+}
+
+function showPwdError(msg) {
+  const el = document.getElementById('pwd-error');
+  document.getElementById('pwd-error-text').textContent = msg;
+  el.classList.add('visible');
+}
+
+function togglePwd(inputId) {
+  const input = document.getElementById(inputId);
+  input.type = input.type === 'password' ? 'text' : 'password';
+}
+
+async function setLoginLang(lang) {
+  await I18n.setLang(lang);
+  document.getElementById('lang-en').classList.toggle('active', lang === 'en');
+  document.getElementById('lang-ar').classList.toggle('active', lang === 'ar');
+}
+
+function redirectByRole(role) {
+  const routes = {
+    ADMIN:      'pages/dashboard.html',
+    SUPERVISOR: 'pages/dashboard.html',
+    TECHNICIAN: 'pages/dashboard.html',
+    VIEWER:     'pages/dashboard.html',
+  };
+  window.location.href = routes[role] || 'pages/dashboard.html';
+}
+</script>
+</body>
+</html>

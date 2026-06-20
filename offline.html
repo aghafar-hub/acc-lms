@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline — ACC LMS</title>
+  <style>
+    :root {
+      --navy: #1E2B5E;
+      --green: #2D7A2D;
+      --bg: #F0F2F7;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      background: var(--bg);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      background: #fff;
+      border-radius: 20px;
+      padding: 48px 40px;
+      max-width: 440px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 16px 48px rgba(0,0,0,0.12);
+    }
+    .icon {
+      font-size: 64px;
+      margin-bottom: 24px;
+    }
+    .logo {
+      width: 120px;
+      margin: 0 auto 24px;
+      opacity: 0.85;
+    }
+    h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--navy);
+      margin-bottom: 12px;
+    }
+    p {
+      font-size: 14px;
+      color: #718096;
+      line-height: 1.7;
+      margin-bottom: 8px;
+    }
+    .cached-notice {
+      background: #D1FAE5;
+      color: #065F46;
+      border-radius: 10px;
+      padding: 12px 16px;
+      font-size: 13px;
+      margin: 24px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-align: left;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      background: var(--navy);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 0.2s;
+      margin-top: 16px;
+    }
+    .btn:hover { background: #263580; }
+    .version {
+      font-size: 11px;
+      color: #CBD5E0;
+      margin-top: 32px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <img src="assets/logo.png" alt="Arabian Cement Company" class="logo" onerror="this.style.display='none'">
+    <div class="icon">📡</div>
+    <h1>You're Offline</h1>
+    <p>No internet connection detected. The app needs a network connection to sync with the server.</p>
+    <p>Your previously cached data is still available — navigate to any page you've visited before.</p>
+
+    <div class="cached-notice">
+      <span>💾</span>
+      <span>Cached pages and your last-synced data remain accessible offline.</span>
+    </div>
+
+    <button class="btn" onclick="window.location.reload()">
+      ↺ Try Again
+    </button>
+    <br>
+    <a href="pages/dashboard.html" class="btn" style="background:#2D7A2D;margin-top:10px;">
+      📊 Open Dashboard (Cached)
+    </a>
+
+    <p class="version">ACC LMS v5.0.0 — Arabian Cement Company</p>
+  </div>
+</body>
+</html>

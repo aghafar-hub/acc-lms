@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — ACC LMS</title>
+  <link rel="manifest" href="../manifest.json">
+  <link rel="stylesheet" href="../css/print.css" media="print">
+  <meta name="theme-color" content="#1E2B5E">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <link rel="stylesheet" href="../css/tokens.css">
+  <link rel="stylesheet" href="../css/base.css">
+  <link rel="stylesheet" href="../css/sidebar.css">
+  <link rel="stylesheet" href="../css/components.css">
+  <link rel="icon" type="image/png" href="../assets/logo.png">
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar"></aside>
+
+  <!-- Main -->
+  <div class="main-content" id="main-content">
+
+    <!-- Header -->
+    <header class="app-header" id="app-header"></header>
+
+    <!-- Page -->
+    <main class="page-content">
+
+      <!-- Welcome Banner -->
+      <div id="welcome-banner" style="margin-bottom:var(--space-6);">
+        <h2 class="text-2xl font-bold" id="welcome-msg">Dashboard</h2>
+        <p class="text-sm text-muted" id="welcome-date"></p>
+      </div>
+
+      <!-- Oil Change Required Alert -->
+      <div class="alert alert-danger" id="oil-change-alert" style="margin-bottom:var(--space-6);display:none;">
+        <span style="font-size:20px;">⚠️</span>
+        <div>
+          <strong>Oil Change Required</strong>
+          <div id="oil-change-count" style="font-size:var(--text-sm);margin-top:2px;"></div>
+        </div>
+        <button class="btn btn-danger btn-sm" style="margin-left:auto;" onclick="window.location.href='points.html?filter=oil_required'">
+          View Points
+        </button>
+      </div>
+
+      <!-- KPI Stats Grid -->
+      <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4" style="gap:var(--space-4);margin-bottom:var(--space-6);" id="kpi-grid">
+        <!-- Loaded dynamically -->
+        <div class="stat-card"><div class="skeleton" style="height:80px;width:100%;"></div></div>
+        <div class="stat-card"><div class="skeleton" style="height:80px;width:100%;"></div></div>
+        <div class="stat-card"><div class="skeleton" style="height:80px;width:100%;"></div></div>
+        <div class="stat-card"><div class="skeleton" style="height:80px;width:100%;"></div></div>
+      </div>
+
+      <!-- Bottom Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2" style="gap:var(--space-6);" id="dash-bottom">
+
+        <!-- Left: Recent Activity / Queue -->
+        <div class="card" id="left-panel">
+          <div class="card-header">
+            <h3 class="card-title" id="left-panel-title">Loading...</h3>
+            <button class="btn btn-ghost btn-sm" id="left-panel-action">View All</button>
+          </div>
+          <div class="card-body" style="padding:0;" id="left-panel-body"></div>
+        </div>
+
+        <!-- Right: Overdue / Stats -->
+        <div class="card" id="right-panel">
+          <div class="card-header">
+            <h3 class="card-title">Overdue — Critical</h3>
+            <button class="btn btn-ghost btn-sm" onclick="window.location.href='reports.html?tab=overdue'">View All</button>
+          </div>
+          <div class="card-body" style="padding:0;" id="right-panel-body"></div>
+        </div>
+
+      </div>
+
+      <!-- Technician Quick Submit (shown only to technicians) -->
+      <div class="card" id="quick-submit-card" style="margin-top:var(--space-6);display:none;">
+        <div class="card-header">
+          <h3 class="card-title">⚡ Quick Submit Oil Change</h3>
+        </div>
+        <div class="card-body">
+          <form id="quick-submit-form" style="display:grid;grid-template-columns:1fr 1fr auto;gap:var(--space-4);align-items:end;">
+            <div class="form-group">
+              <label class="form-label required">Point ID</label>
+              <input type="text" class="form-control" id="qs-point-id" placeholder="e.g. PT-431-GBX-001">
+            </div>
+            <div class="form-group">
+              <label class="form-label required">Change Date</label>
+              <input type="date" class="form-control" id="qs-date">
+            </div>
+            <button type="submit" class="btn btn-primary">Submit</button>
+          </form>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<div id="toast-container" class="toast-container"></div>
+
+<script src="../js/core.js"></script>
+<script src="../js/shell.js"></script>
+<script>
+function generateSkeletonRows(n) {
+  return Array.from({length: n}, () =>
+    `<div style="display:flex;align-items:center;gap:12px;padding:12px 24px;border-bottom:1px solid var(--color-border);">
+      <div class="skeleton" style="width:36px;height:36px;border-radius:50%;flex-shrink:0;"></div>
+      <div style="flex:1;">
+        <div class="skeleton" style="height:14px;width:70%;margin-bottom:6px;"></div>
+        <div class="skeleton" style="height:11px;width:45%;"></div>
+      </div>
+    </div>`
+  ).join('');
+}
+
+// FIX: previously this skeleton HTML was written as literal
+// '${generateSkeletonRows(4)}' text directly in the static markup,
+// which the browser never evaluates — it just prints as plain text.
+// Inject it properly here instead, right after the function exists.
+document.getElementById('left-panel-body').innerHTML  = `<div style="padding:var(--space-6);">${generateSkeletonRows(4)}</div>`;
+document.getElementById('right-panel-body').innerHTML = `<div style="padding:var(--space-6);">${generateSkeletonRows(4)}</div>`;
+
+(async function() {
+  await App.init();
+  await Shell.init();
+
+  const user = Auth.getUser();
+  const role = Auth.getRole();
+
+  // Welcome message
+  // FIX: backend returns FullNameEN/FullNameAR, never a plain 'Name'
+  // field — this always fell back to the generic 'User' text before.
+  const displayName = (I18n.getLang() === 'ar' ? user?.FullNameAR : user?.FullNameEN) || user?.FullNameEN || 'User';
+  document.getElementById('welcome-msg').textContent =
+    I18n.t('dashboard.welcome', { name: displayName.split(' ')[0] });
+  document.getElementById('welcome-date').textContent =
+    new Date().toLocaleDateString(I18n.getLang() === 'ar' ? 'ar-EG' : 'en-GB', {
+      weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+    });
+
+  // Set today's date for quick submit
+  const qsDate = document.getElementById('qs-date');
+  if (qsDate) qsDate.value = new Date().toISOString().split('T')[0];
+
+  // PERFORMANCE FIX: KPI cards and the panels below them are independent
+  // sections — load them in parallel rather than waiting for KPI to
+  // fully finish before starting the panels.
+  await Promise.all([
+    loadKPI(role),
+    loadPanels(role)
+  ]);
+
+  // Show role-specific elements
+  if (role === 'TECHNICIAN') {
+    document.getElementById('quick-submit-card').style.display = 'block';
+  }
+})();
+
+async function loadKPI(role) {
+  const kpiGrid = document.getElementById('kpi-grid');
+
+  const res = await API.getKPI();
+
+  if (!res.success) {
+    kpiGrid.innerHTML = `<div class="alert alert-warning" style="grid-column:1/-1;">
+      ${I18n.t('error.api_not_configured')} <a href="settings.html" class="btn btn-sm btn-secondary" style="margin-left:8px;">Configure API</a>
+    </div>`;
+    return;
+  }
+
+  const kpi = res.data || {};
+
+  const cards = buildKpiCards(role, kpi);
+  kpiGrid.innerHTML = cards;
+
+  // Show oil change required alert
+  if (kpi.OilChangeRequired > 0) {
+    document.getElementById('oil-change-alert').style.display = 'flex';
+    document.getElementById('oil-change-count').textContent =
+      `${kpi.OilChangeRequired} point(s) require immediate oil change`;
+  }
+}
+
+function buildKpiCards(role, kpi) {
+  const cards = [
+    {
+      value: kpi.TotalPoints || '—',
+      label: I18n.t('dashboard.kpi.total_points'),
+      icon: '⚙️',
+      iconClass: 'navy',
+      href: 'points.html',
+    },
+    {
+      value: kpi.OverdueCount || 0,
+      label: I18n.t('dashboard.kpi.overdue'),
+      icon: '⏰',
+      iconClass: kpi.OverdueCount > 0 ? 'red' : 'green',
+      href: 'reports.html?tab=overdue',
+    },
+    {
+      value: kpi.DueThisWeek || 0,
+      label: I18n.t('dashboard.kpi.due_this_week'),
+      icon: '📅',
+      iconClass: 'orange',
+      href: 'points.html?filter=due_this_week',
+    },
+    {
+      value: kpi.ComplianceRate != null ? `${kpi.ComplianceRate}%` : '—',
+      label: I18n.t('dashboard.kpi.compliance'),
+      icon: '✅',
+      iconClass: 'green',
+      href: 'reports.html?tab=compliance',
+    },
+  ];
+
+  // Role-specific cards
+  if (role === 'ADMIN' || role === 'SUPERVISOR') {
+    cards.push({
+      value: kpi.PendingApproval || 0,
+      label: I18n.t('dashboard.kpi.pending_approval'),
+      icon: '⏳',
+      iconClass: 'purple',
+      href: 'pending.html',
+    });
+  }
+
+  if (kpi.OilChangeRequired > 0) {
+    cards.push({
+      value: kpi.OilChangeRequired,
+      label: I18n.t('dashboard.kpi.oil_change_required'),
+      icon: '🛢️',
+      iconClass: 'red',
+      href: 'points.html?filter=oil_required',
+    });
+  }
+
+  return cards.map(c => `
+    <a href="${c.href}" class="stat-card" style="text-decoration:none;cursor:pointer;">
+      <div class="stat-icon ${c.iconClass}">${c.icon}</div>
+      <div class="stat-info">
+        <div class="stat-value">${Format.number(c.value)}</div>
+        <div class="stat-label">${c.label}</div>
+      </div>
+    </a>
+  `).join('');
+}
+
+async function loadPanels(role) {
+  // PERFORMANCE FIX: run the role-specific panel call and the overdue
+  // report call in parallel (Promise.all) instead of sequentially —
+  // they are independent and each Apps Script round-trip is slow,
+  // so running them together roughly halves this section's load time.
+  let leftPanelPromise;
+  if (role === 'TECHNICIAN') {
+    document.getElementById('left-panel-title').textContent = I18n.t('dashboard.my_queue');
+    document.getElementById('left-panel-action').textContent = 'View All';
+    document.getElementById('left-panel-action').onclick = () => window.location.href = 'history.html';
+    leftPanelPromise = API.get('workflow.technician_queue', {})
+      .then(res => renderActivityList('left-panel-body', res.data || [], 'queue'));
+  } else {
+    document.getElementById('left-panel-title').textContent = I18n.t('dashboard.pending_review');
+    document.getElementById('left-panel-action').textContent = 'View All';
+    document.getElementById('left-panel-action').onclick = () => window.location.href = 'pending.html';
+    leftPanelPromise = API.getPendingQueue()
+      .then(res => renderActivityList('left-panel-body', (res.data || []).slice(0, 6), 'pending'));
+  }
+
+  const overduePromise = API.getOverdueReport({ criticality: 'CRITICAL', limit: 6 })
+    .then(oRes => renderOverdueList('right-panel-body', oRes.data || []));
+
+  await Promise.all([leftPanelPromise, overduePromise]);
+}
+
+function renderActivityList(containerId, items, type) {
+  const el = document.getElementById(containerId);
+  if (!items.length) {
+    el.innerHTML = DOM.emptyState(I18n.t('pending.empty'), '✅');
+    return;
+  }
+
+  el.innerHTML = items.map(item => {
+    const statusBadge = Format.statusBadge(item.Status);
+    const criticality = item.Criticality ? Format.criticalityBadge(item.Criticality) : '';
+
+    return `
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 24px;border-bottom:1px solid var(--color-border);">
+        <div style="width:36px;height:36px;border-radius:50%;background:var(--color-surface-overlay);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">
+          ${type === 'pending' ? '⏳' : '📋'}
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:var(--text-sm);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+            ${item.PointID || item.HistoryID || '—'}
+          </div>
+          <div style="font-size:var(--text-xs);color:var(--color-text-muted);margin-top:2px;">
+            ${I18n.formatDate(item.ChangeDate || item.CreatedAt)} ${criticality}
+          </div>
+        </div>
+        ${statusBadge}
+      </div>
+    `;
+  }).join('');
+}
+
+function renderOverdueList(containerId, items) {
+  const el = document.getElementById(containerId);
+  if (!items.length) {
+    el.innerHTML = DOM.emptyState('No critical overdue', '✅');
+    return;
+  }
+
+  el.innerHTML = items.map(item => {
+    const days = item.DaysOverdue || 0;
+    const badgeClass = Format.overdueClass(days);
+
+    return `
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 24px;border-bottom:1px solid var(--color-border);">
+        <div style="flex:1;min-width:0;">
+          <div style="font-size:var(--text-sm);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+            ${item.PointID || '—'}
+          </div>
+          <div style="font-size:var(--text-xs);color:var(--color-text-muted);margin-top:2px;">
+            ${item.AssetName || ''} · ${item.LocationCode || ''}
+          </div>
+        </div>
+        <span class="badge badge-${badgeClass}">${days}d overdue</span>
+      </div>
+    `;
+  }).join('');
+}
+
+// Quick submit form
+document.getElementById('quick-submit-form')?.addEventListener('submit', async e => {
+  e.preventDefault();
+  const pointId = document.getElementById('qs-point-id').value.trim();
+  const date    = document.getElementById('qs-date').value;
+
+  if (!pointId || !date) {
+    Toast.warning('Please fill in Point ID and Date');
+    return;
+  }
+
+  const res = await API.submitOilChange({ PointID: pointId, ChangeDate: date });
+  if (res.success) {
+    Toast.success(I18n.t('msg.submitted'));
+    document.getElementById('qs-point-id').value = '';
+  } else {
+    Toast.error(res.error || I18n.t('error.generic'));
+  }
+});
+</script>
+</body>
+</html>
